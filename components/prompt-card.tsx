@@ -1,0 +1,91 @@
+"use client"
+
+import Link from "next/link"
+import { Check, ShoppingCart } from "lucide-react"
+import { toast } from "sonner"
+
+import type { Prompt } from "@/lib/data"
+import { formatPrice } from "@/lib/data"
+import { useStore } from "@/lib/store"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+
+export function PromptCard({ prompt }: { prompt: Prompt }) {
+  const { user, isInCart, addToCart, isPurchased } = useStore()
+  const inCart = isInCart(prompt.id)
+  const purchased = isPurchased(prompt.id)
+
+  function handleAdd() {
+    if (!user) {
+      toast.error("로그인이 필요합니다")
+      return
+    }
+    addToCart(prompt.id)
+    toast.success("장바구니에 담았습니다")
+  }
+
+  return (
+    <Card className="group flex flex-col overflow-hidden pt-0 transition-shadow hover:shadow-lg">
+      <Link href={`/prompt/${prompt.id}`} className="relative block aspect-[4/3] overflow-hidden bg-muted">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={prompt.images[0] || "/placeholder.svg"}
+          alt={`${prompt.title} 결과물 예시`}
+          className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = "/placeholder.svg"
+          }}
+        />
+        <Badge className="absolute left-3 top-3 bg-background/85 text-foreground backdrop-blur-sm" variant="secondary">
+          {prompt.category}
+        </Badge>
+        {purchased && (
+          <Badge className="absolute right-3 top-3">구매완료</Badge>
+        )}
+      </Link>
+
+      <CardContent className="flex flex-1 flex-col gap-2">
+        <p className="text-xs font-medium text-muted-foreground">{prompt.model}</p>
+        <Link href={`/prompt/${prompt.id}`}>
+          <h3 className="line-clamp-2 font-display text-base font-semibold leading-snug text-balance transition-colors group-hover:text-primary">
+            {prompt.title}
+          </h3>
+        </Link>
+        <p className="mt-auto pt-2 font-display text-lg font-bold text-foreground">
+          {formatPrice(prompt.price)}
+        </p>
+      </CardContent>
+
+      <CardFooter className="flex gap-2">
+        <Link
+          href={`/prompt/${prompt.id}`}
+          className={cn(buttonVariants({ variant: "outline" }), "flex-1")}
+        >
+          상세보기
+        </Link>
+        {purchased ? (
+          <Button className="flex-1" disabled>
+            <Check data-icon="inline-start" />
+            구매완료
+          </Button>
+        ) : (
+          <Button className="flex-1" onClick={handleAdd} disabled={inCart}>
+            {inCart ? (
+              <>
+                <Check data-icon="inline-start" />
+                장바구니에 있음
+              </>
+            ) : (
+              <>
+                <ShoppingCart data-icon="inline-start" />
+                장바구니 담기
+              </>
+            )}
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  )
+}
