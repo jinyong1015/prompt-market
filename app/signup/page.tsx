@@ -12,20 +12,30 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 
-export default function LoginPage() {
+export default function SignupPage() {
   const router = useRouter()
-  const { login } = useStore()
-  const [email, setEmail] = React.useState("creator@promptmarket.io")
-  const [password, setPassword] = React.useState("password")
+  const { signup } = useStore()
+  const [nickname, setNickname] = React.useState("")
+  const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!email) {
+    if (!nickname.trim()) {
+      toast.error("닉네임을 입력해주세요")
+      return
+    }
+    if (!email.trim()) {
       toast.error("이메일을 입력해주세요")
       return
     }
-    login(email)
-    toast.success("로그인되었습니다")
+    if (!password) {
+      toast.error("비밀번호를 입력해주세요")
+      return
+    }
+    // Demo: password is collected in UI only; no server validation.
+    signup({ email: email.trim(), nickname: nickname.trim() })
+    toast.success("회원가입이 완료되었습니다")
     router.push("/")
   }
 
@@ -35,18 +45,29 @@ export default function LoginPage() {
         <span className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Sparkles className="size-5" />
         </span>
-        <h1 className="mt-4 font-display text-2xl font-bold">다시 오신 걸 환영해요</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Prompt Market 계정으로 로그인하세요</p>
+        <h1 className="mt-4 font-display text-2xl font-bold">계정을 만들어 보세요</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Prompt Market에 가입하고 프롬프트를 만나보세요</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>로그인</CardTitle>
-          <CardDescription>데모용 계정 정보가 미리 입력되어 있습니다.</CardDescription>
+          <CardTitle>회원가입</CardTitle>
+          <CardDescription>데모용입니다. 비밀번호는 저장·검증되지 않습니다.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="nickname">닉네임</FieldLabel>
+                <Input
+                  id="nickname"
+                  type="text"
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value)}
+                  placeholder="프롬프트러버"
+                  autoComplete="nickname"
+                />
+              </Field>
               <Field>
                 <FieldLabel htmlFor="email">이메일</FieldLabel>
                 <Input
@@ -65,11 +86,11 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                 />
               </Field>
               <Button type="submit" className="w-full">
-                로그인
+                가입하기
               </Button>
             </FieldGroup>
           </form>
@@ -77,9 +98,9 @@ export default function LoginPage() {
       </Card>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        계정이 없으신가요?{" "}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
-          회원가입
+        이미 계정이 있으신가요?{" "}
+        <Link href="/login" className="font-medium text-primary hover:underline">
+          로그인
         </Link>
       </p>
     </div>

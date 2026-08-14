@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ShoppingCart, User as UserIcon, Receipt, LogOut, Sparkles } from "lucide-react"
+import { Heart, ShoppingCart, User as UserIcon, Receipt, LogOut, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { useStore } from "@/lib/store"
@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils"
 
 export function SiteHeader() {
   const router = useRouter()
-  const { user, cart, logout } = useStore()
+  const { user, cartCount, wishlist, logout } = useStore()
 
   function handleLogout() {
     logout()
@@ -43,20 +43,41 @@ export function SiteHeader() {
 
         <nav className="flex items-center gap-2">
           {!user ? (
-            <Link href="/login" className={cn(buttonVariants({ size: "sm" }))}>
-              로그인
-            </Link>
+            <>
+              <Link
+                href="/login"
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+              >
+                로그인
+              </Link>
+              <Link href="/signup" className={cn(buttonVariants({ size: "sm" }))}>
+                회원가입
+              </Link>
+            </>
           ) : (
             <>
               <Link
+                href="/wishlist"
+                className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
+                aria-label={`찜 내역, ${wishlist.length}개`}
+              >
+                <Heart className="size-5" />
+                {wishlist.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                    {wishlist.length}
+                  </span>
+                )}
+              </Link>
+
+              <Link
                 href="/cart"
                 className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
-                aria-label={`장바구니, ${cart.length}개 담김`}
+                aria-label={`장바구니, ${cartCount}개 담김`}
               >
                 <ShoppingCart className="size-5" />
-                {cart.length > 0 && (
+                {cartCount > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                    {cart.length}
+                    {cartCount}
                   </span>
                 )}
               </Link>
@@ -88,6 +109,10 @@ export function SiteHeader() {
                     <DropdownMenuItem onClick={() => router.push("/profile")}>
                       <UserIcon />
                       프로필 관리
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/wishlist")}>
+                      <Heart />
+                      찜 내역
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/my-page")}>
                       <Receipt />

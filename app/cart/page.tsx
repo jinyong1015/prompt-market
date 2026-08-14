@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ShoppingBag, X } from "lucide-react"
+import { Minus, Plus, ShoppingBag, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { getPrompt, formatPrice } from "@/lib/data"
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils"
 
 export default function CartPage() {
   const router = useRouter()
-  const { user, cart, removeFromCart } = useStore()
+  const { user, cart, removeFromCart, setCartQuantity } = useStore()
   const [checkoutOpen, setCheckoutOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -27,12 +27,34 @@ export default function CartPage() {
 
   if (!user) return <AuthPageSkeleton />
 
-  const items = cart.map(getPrompt).filter((p): p is NonNullable<typeof p> => Boolean(p))
-  const total = items.reduce((sum, p) => sum + p.price, 0)
+  const items = cart
+    .map((item) => {
+      const prompt = getPrompt(item.id)
+      if (!prompt) return null
+      return { ...item, prompt }
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+
+  const total = items.reduce((sum, item) => sum + item.prompt.price * item.quantity, 0)
+  const totalUnits = items.reduce((sum, item) => sum + item.quantity, 0)
+  const checkoutIds = items.map((item) => item.id)
 
   function handleRemove(id: string, title: string) {
     removeFromCart(id)
     toast.success(`'${title.slice(0, 12)}...' 삭제됨`)
+  }
+
+  function handleDecrease(id: string, quantity: number) {
+    if (quantity <= 1) {
+      removeFromCart(id)
+      toast.success("장바구니에서 삭제했습니다")
+      return
+    }
+    setCartQuantity(id, quantity - 1)
+  }
+
+  function handleIncrease(id: string, quantity: number) {
+    setCartQuantity(id, quantity + 1)
   }
 
   if (items.length === 0) {
@@ -59,17 +81,18 @@ export default function CartPage() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-2xl font-bold">장바구니</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{items.length}개의 프롬프트</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {items.length}종의 프롬프트 · 총 {totalUnits}개
+      </p>
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
-        {/* Items */}
         <ul className="flex flex-col gap-4">
-          {items.map((prompt) => (
-            <li key={prompt.id}>
+          {items.map(({ id, quantity, prompt }) => (
+            <li key={id}>
               <Card>
-                <CardContent className="flex items-center gap-4">
+                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
                   <Link
-                    href={`/prompt/${prompt.id}`}
+                    href={`/prompt/${id}`}
                     className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -81,30 +104,59 @@ export default function CartPage() {
                   </Link>
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/prompt/${prompt.id}`}
+                      href={`/prompt/${id}`}
                       className="line-clamp-2 text-sm font-medium leading-snug hover:text-primary"
                     >
                       {prompt.title}
                     </Link>
-                    <p className="mt-1 font-display text-sm font-bold text-foreground">
-                      {formatPrice(prompt.price)}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatPrice(prompt.price)} · 단가
+                    </p>
+                    <p className="mt-0.5 font-display text-sm font-bold text-foreground">
+                      {formatPrice(prompt.price * quantity)}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemove(prompt.id, prompt.title)}
-                    aria-label="장바구니에서 삭제"
-                  >
-                    <X />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center rounded-lg border border-border">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-none"
+                        onClick={() => handleDecrease(id, quantity)}
+                        aria-label="수량 감소"
+                      >
+                        <Minus className="size-4" />
+                      </Button>
+                      <span className="min-w-8 text-center text-sm font-medium tabular-nums">
+                        {quantity}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-none"
+                        onClick={() => handleIncrease(id, quantity)}
+                        aria-label="수량 증가"
+                      >
+                        <Plus className="size-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemove(id, prompt.title)}
+                      aria-label="장바구니에서 삭제"
+                    >
+                      <X />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </li>
           ))}
         </ul>
 
-        {/* Summary */}
         <div className="lg:sticky lg:top-24 lg:self-start">
           <Card>
             <CardContent className="flex flex-col gap-4">
@@ -129,7 +181,7 @@ export default function CartPage() {
       <CheckoutDialog
         open={checkoutOpen}
         onOpenChange={setCheckoutOpen}
-        items={cart}
+        items={checkoutIds}
         amount={total}
       />
     </div>
