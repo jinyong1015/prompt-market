@@ -6,6 +6,7 @@ import { Camera, Pencil } from "lucide-react"
 import { toast } from "sonner"
 
 import { useStore } from "@/lib/store"
+import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -16,6 +17,7 @@ import { AuthPageSkeleton } from "@/components/auth-page-skeleton"
 export default function ProfilePage() {
   const router = useRouter()
   const { user, updateProfile } = useStore()
+  const { t } = useI18n()
 
   const [editing, setEditing] = React.useState(false)
   const [draft, setDraft] = React.useState("")
@@ -34,12 +36,12 @@ export default function ProfilePage() {
 
   function save() {
     if (!draft.trim()) {
-      toast.error("닉네임을 입력해주세요")
+      toast.error(t("toast.nicknameRequired"))
       return
     }
     updateProfile({ nickname: draft.trim() })
     setEditing(false)
-    toast.success("프로필이 저장되었습니다")
+    toast.success(t("toast.profileSaved"))
   }
 
   function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
@@ -47,20 +49,20 @@ export default function ProfilePage() {
     if (!file) return
     const url = URL.createObjectURL(file)
     updateProfile({ avatar: url })
-    toast.success("프로필 이미지가 변경되었습니다")
+    toast.success(t("toast.avatarChanged"))
   }
 
   return (
     <div className="mx-auto w-full max-w-xl px-4 py-10 sm:px-6">
-      <h1 className="font-display text-2xl font-bold">프로필 관리</h1>
-      <p className="mt-1 text-sm text-muted-foreground">닉네임과 프로필 이미지를 수정하세요.</p>
+      <h1 className="font-display text-2xl font-bold">{t("profile.title")}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t("profile.subtitle")}</p>
 
       <div className="mt-8 flex flex-col items-center">
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           className="group relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="프로필 이미지 변경"
+          aria-label={t("profile.changeAria")}
         >
           <Avatar className="size-24">
             {user.avatar && <AvatarImage src={user.avatar} alt={user.nickname} />}
@@ -70,7 +72,7 @@ export default function ProfilePage() {
           </Avatar>
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 rounded-full bg-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
             <Camera className="size-5 text-background" />
-            <span className="text-xs font-medium text-background">변경</span>
+            <span className="text-xs font-medium text-background">{t("profile.change")}</span>
           </span>
         </button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatar} />
@@ -78,17 +80,17 @@ export default function ProfilePage() {
 
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>기본 정보</CardTitle>
+          <CardTitle>{t("profile.basic")}</CardTitle>
         </CardHeader>
         <CardContent>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="email">이메일</FieldLabel>
+              <FieldLabel htmlFor="email">{t("profile.email")}</FieldLabel>
               <Input id="email" value={user.email} disabled />
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="nickname">닉네임</FieldLabel>
+              <FieldLabel htmlFor="nickname">{t("profile.nickname")}</FieldLabel>
               {editing ? (
                 <div className="flex items-center gap-2">
                   <Input
@@ -98,10 +100,10 @@ export default function ProfilePage() {
                     autoFocus
                   />
                   <Button size="sm" onClick={save}>
-                    저장
+                    {t("profile.save")}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditing(false)}>
-                    취소
+                    {t("profile.cancel")}
                   </Button>
                 </div>
               ) : (
@@ -109,7 +111,7 @@ export default function ProfilePage() {
                   <span className="text-sm">{user.nickname}</span>
                   <Button size="sm" variant="ghost" onClick={startEdit}>
                     <Pencil data-icon="inline-start" />
-                    수정
+                    {t("profile.edit")}
                   </Button>
                 </div>
               )}

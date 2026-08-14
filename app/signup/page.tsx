@@ -7,6 +7,7 @@ import { Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { useStore } from "@/lib/store"
+import { useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +16,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 export default function SignupPage() {
   const router = useRouter()
   const { signup } = useStore()
+  const { t } = useI18n()
   const [nickname, setNickname] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -22,20 +24,19 @@ export default function SignupPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!nickname.trim()) {
-      toast.error("닉네임을 입력해주세요")
+      toast.error(t("toast.nicknameRequired"))
       return
     }
     if (!email.trim()) {
-      toast.error("이메일을 입력해주세요")
+      toast.error(t("toast.emailRequired"))
       return
     }
     if (!password) {
-      toast.error("비밀번호를 입력해주세요")
+      toast.error(t("toast.passwordRequired"))
       return
     }
-    // Demo: password is collected in UI only; no server validation.
     signup({ email: email.trim(), nickname: nickname.trim() })
-    toast.success("회원가입이 완료되었습니다")
+    toast.success(t("toast.signedUp"))
     router.push("/")
   }
 
@@ -45,31 +46,31 @@ export default function SignupPage() {
         <span className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <Sparkles className="size-5" />
         </span>
-        <h1 className="mt-4 font-display text-2xl font-bold">계정을 만들어 보세요</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Prompt Market에 가입하고 프롬프트를 만나보세요</p>
+        <h1 className="mt-4 font-display text-2xl font-bold">{t("signup.title")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("signup.subtitle")}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>회원가입</CardTitle>
-          <CardDescription>데모용입니다. 비밀번호는 저장·검증되지 않습니다.</CardDescription>
+          <CardTitle>{t("signup.cardTitle")}</CardTitle>
+          <CardDescription>{t("signup.cardDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="nickname">닉네임</FieldLabel>
+                <FieldLabel htmlFor="nickname">{t("signup.nickname")}</FieldLabel>
                 <Input
                   id="nickname"
                   type="text"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
-                  placeholder="프롬프트러버"
+                  placeholder={t("signup.nicknamePlaceholder")}
                   autoComplete="nickname"
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="email">이메일</FieldLabel>
+                <FieldLabel htmlFor="email">{t("signup.email")}</FieldLabel>
                 <Input
                   id="email"
                   type="email"
@@ -80,7 +81,7 @@ export default function SignupPage() {
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="password">비밀번호</FieldLabel>
+                <FieldLabel htmlFor="password">{t("signup.password")}</FieldLabel>
                 <Input
                   id="password"
                   type="password"
@@ -90,7 +91,7 @@ export default function SignupPage() {
                 />
               </Field>
               <Button type="submit" className="w-full">
-                가입하기
+                {t("signup.submit")}
               </Button>
             </FieldGroup>
           </form>
@@ -98,9 +99,9 @@ export default function SignupPage() {
       </Card>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        이미 계정이 있으신가요?{" "}
+        {t("signup.hasAccount")}{" "}
         <Link href="/login" className="font-medium text-primary hover:underline">
-          로그인
+          {t("signup.goLogin")}
         </Link>
       </p>
     </div>

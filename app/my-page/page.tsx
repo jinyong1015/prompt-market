@@ -18,10 +18,12 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { formatPrice, getPrompt } from "@/lib/data"
+import { getPrompt } from "@/lib/data"
 import type { Prompt } from "@/lib/data"
 import { useStore } from "@/lib/store"
 import type { Review } from "@/lib/store"
+import { formatCompactWon, formatPrice, useI18n } from "@/lib/i18n"
+import { localizePrompt } from "@/lib/prompt-i18n"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
@@ -55,19 +57,6 @@ type SortOption = "newest" | "oldest" | "price-desc" | "price-asc"
 
 const SELLER_NAME = "PromptMarket"
 
-const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "전체" },
-  { value: "reviewed", label: "리뷰 작성" },
-  { value: "unreviewed", label: "리뷰 미작성" },
-]
-
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "newest", label: "최신순" },
-  { value: "oldest", label: "오래된순" },
-  { value: "price-desc", label: "가격 높은순" },
-  { value: "price-asc", label: "가격 낮은순" },
-]
-
 function downloadPromptFile(title: string, promptText: string) {
   const safeName = title.replace(/[\\/:*?"<>|]/g, "_").slice(0, 40)
   const blob = new Blob([promptText], { type: "text/plain;charset=utf-8" })
@@ -81,29 +70,42 @@ function downloadPromptFile(title: string, promptText: string) {
   URL.revokeObjectURL(url)
 }
 
-function formatCompactWon(amount: number) {
-  if (amount >= 10_000) {
-    const man = amount / 10_000
-    const label = Number.isInteger(man) ? String(man) : man.toFixed(1).replace(/\.0$/, "")
-    return `₩${label}만`
-  }
-  return `₩${amount.toLocaleString("ko-KR")}`
-}
-
-function downloadAllReceipts(items: PurchaseRow[]) {
-  const lines = [
-    "Prompt Market 구매 영수증",
-    `발급일: ${new Date().toISOString().slice(0, 10)}`,
-    "",
-    ...items.flatMap((item, index) => [
-      `${index + 1}. ${item.prompt.title}`,
-      `   구매일: ${item.date}`,
-      `   금액: ${formatPrice(item.prompt.price)}`,
-      `   판매자: ${SELLER_NAME}`,
-      "",
-    ]),
-    `합계: ${formatPrice(items.reduce((sum, item) => sum + item.prompt.price, 0))}`,
-  ]
+function downloadAllReceipts(
+  items: PurchaseRow[],
+  locale: "ko" | "en",
+) {
+  const total = formatPrice(
+    items.reduce((sum, item) => sum + item.prompt.price, 0),
+    locale,
+  )
+  const lines =
+    locale === "en"
+      ? [
+          "Prompt Market Receipts",
+          `Issued: ${new Date().toISOString().slice(0, 10)}`,
+          "",
+          ...items.flatMap((item, index) => [
+            `${index + 1}. ${localizePrompt(item.prompt, locale).title}`,
+            `   Date: ${item.date}`,
+            `   Amount: ${formatPrice(item.prompt.price, locale)}`,
+            `   Seller: ${SELLER_NAME}`,
+            "",
+          ]),
+          `Total: ${total}`,
+        ]
+      : [
+          "Prompt Market 구매 영수증",
+          `발급일: ${new Date().toISOString().slice(0, 10)}`,
+          "",
+          ...items.flatMap((item, index) => [
+            `${index + 1}. ${item.prompt.title}`,
+            `   구매일: ${item.date}`,
+            `   금액: ${formatPrice(item.prompt.price, locale)}`,
+            `   판매자: ${SELLER_NAME}`,
+            "",
+          ]),
+          `합계: ${total}`,
+        ]
   const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
@@ -118,6 +120,7 @@ function downloadAllReceipts(items: PurchaseRow[]) {
 export default function MyPage() {
   const router = useRouter()
   const { user, purchases, getReview, saveReview } = useStore()
+  const { t, locale } = useI18n()
   const [query, setQuery] = React.useState("")
   const [status, setStatus] = React.useState<StatusFilter>("all")
   const [sort, setSort] = React.useState<SortOption>("newest")
@@ -143,7 +146,10 @@ export default function MyPage() {
 
   const filtered = items
     .filter((item) => {
-      const haystack = `${item.prompt.title} ${SELLER_NAME} ${item.prompt.category}`.toLowerCase()
+      const localized = localizePrompt(item.prompt, locale)
+      const english = localizePrompt(item.prompt, "en")
+      const haystack =
+        `${item.prompt.title} ${english.title} ${localized.title} ${SELLER_NAME} ${item.prompt.category} ${t(`category.${item.prompt.category}`)}`.toLowerCase()
       const matchesQuery = !query.trim() || haystack.includes(query.trim().toLowerCase())
       const hasReview = Boolean(getReview(item.id))
       const matchesStatus =
@@ -159,8 +165,19 @@ export default function MyPage() {
       return a.prompt.price - b.prompt.price
     })
 
-  const statusLabel = STATUS_OPTIONS.find((o) => o.value === status)?.label ?? "전체"
-  const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label ?? "최신순"
+  const statusOptions: { value: StatusFilter; label: string }[] = [
+    { value: "all", label: t("purchases.statusAll") },
+    { value: "reviewed", label: t("purchases.statusReviewed") },
+    { value: "unreviewed", label: t("purchases.statusUnreviewed") },
+  ]
+  const sortOptions: { value: SortOption; label: string }[] = [
+    { value: "newest", label: t("purchases.sortNewest") },
+    { value: "oldest", label: t("purchases.sortOldest") },
+    { value: "price-desc", label: t("purchases.sortPriceDesc") },
+    { value: "price-asc", label: t("purchases.sortPriceAsc") },
+  ]
+  const statusLabel = statusOptions.find((o) => o.value === status)?.label ?? t("purchases.statusAll")
+  const sortLabel = sortOptions.find((o) => o.value === sort)?.label ?? t("purchases.sortNewest")
 
   if (items.length === 0) {
     return (
@@ -170,12 +187,12 @@ export default function MyPage() {
             <EmptyMedia variant="icon">
               <Receipt />
             </EmptyMedia>
-            <EmptyTitle>구매 내역</EmptyTitle>
-            <EmptyDescription>아직 구매한 프롬프트가 없습니다.</EmptyDescription>
+            <EmptyTitle>{t("purchases.emptyTitle")}</EmptyTitle>
+            <EmptyDescription>{t("purchases.emptyDesc")}</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             <Link href="/" className={cn(buttonVariants())}>
-              프롬프트 둘러보기
+              {t("purchases.browse")}
             </Link>
           </EmptyContent>
         </Empty>
@@ -187,9 +204,9 @@ export default function MyPage() {
     <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight">구매 내역</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight">{t("purchases.title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            총 {items.length}개 프롬프트 · {formatPrice(totalPaid)} 결제
+            {t("purchases.summary", { count: items.length, amount: formatPrice(totalPaid, locale) })}
           </p>
         </div>
         <Button
@@ -197,12 +214,12 @@ export default function MyPage() {
           variant="outline"
           className="h-10"
           onClick={() => {
-            downloadAllReceipts(items)
-            toast.success("전체 영수증을 다운로드했습니다")
+            downloadAllReceipts(items, locale)
+            toast.success(t("toast.receiptsDownloaded"))
           }}
         >
           <FileText data-icon="inline-start" />
-          전체 영수증 다운로드
+          {t("purchases.downloadAll")}
         </Button>
       </div>
 
@@ -210,17 +227,17 @@ export default function MyPage() {
         <StatCard
           icon={<Download className="size-5" />}
           value={String(items.length)}
-          label="구매한 프롬프트"
+          label={t("purchases.statPrompts")}
         />
         <StatCard
           icon={<Wallet className="size-5" />}
-          value={formatCompactWon(totalPaid)}
-          label="총 결제 금액"
+          value={formatCompactWon(totalPaid, locale)}
+          label={t("purchases.statPaid")}
         />
         <StatCard
           icon={<CalendarDays className="size-5" />}
           value={String(orderCount)}
-          label="총 주문 수"
+          label={t("purchases.statOrders")}
         />
       </div>
 
@@ -230,27 +247,27 @@ export default function MyPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="프롬프트 제목이나 판매자로 검색..."
+            placeholder={t("purchases.searchPlaceholder")}
             className="h-10 border-0 bg-muted/50 pl-9 shadow-none focus-visible:bg-background"
-            aria-label="구매 내역 검색"
+            aria-label={t("purchases.searchAria")}
           />
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <FilterDropdown
-            ariaLabel="상태 필터"
-            prefix="상태"
+            ariaLabel={t("purchases.status")}
+            prefix={t("purchases.status")}
             icon={<Filter className="size-4 text-muted-foreground" />}
             label={statusLabel}
-            options={STATUS_OPTIONS}
+            options={statusOptions}
             value={status}
             onChange={setStatus}
           />
           <FilterDropdown
-            ariaLabel="정렬"
-            prefix="정렬"
+            ariaLabel={t("purchases.sort")}
+            prefix={t("purchases.sort")}
             icon={<ArrowUpDown className="size-4 text-muted-foreground" />}
             label={sortLabel}
-            options={SORT_OPTIONS}
+            options={sortOptions}
             value={sort}
             onChange={setSort}
           />
@@ -262,7 +279,7 @@ export default function MyPage() {
           <li>
             <Card className="shadow-none">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                검색 조건에 맞는 구매 내역이 없습니다.
+                {t("purchases.noMatch")}
               </CardContent>
             </Card>
           </li>
@@ -288,7 +305,7 @@ export default function MyPage() {
         onConfirm={() => {
           if (!downloadTarget) return
           downloadPromptFile(downloadTarget.prompt.title, downloadTarget.prompt.promptText)
-          toast.success("프롬프트를 다운로드했습니다")
+          toast.success(t("toast.downloaded"))
           setDownloadTarget(null)
         }}
       />
@@ -302,7 +319,7 @@ export default function MyPage() {
         onSave={(data) => {
           if (!reviewTarget) return
           saveReview(reviewTarget.id, data)
-          toast.success("리뷰를 저장했습니다")
+          toast.success(t("toast.reviewSaved"))
           setReviewTarget(null)
         }}
       />
@@ -396,6 +413,8 @@ function PurchaseListCard({
   onDownload: () => void
   onReview: () => void
 }) {
+  const { t, locale } = useI18n()
+  const copy = localizePrompt(item.prompt, locale)
   return (
     <Card className="overflow-hidden shadow-none transition-shadow hover:shadow-sm">
       <CardContent className="p-4 sm:p-5">
@@ -408,37 +427,41 @@ function PurchaseListCard({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.prompt.images[0] || "/placeholder.svg"}
-                alt={item.prompt.title}
+                alt={copy.title}
                 className="size-full object-cover"
               />
             </Link>
             <div className="min-w-0 flex-1">
               <Badge variant="secondary" className="mb-2">
-                {item.prompt.category}
+                {t(`category.${item.prompt.category}`)}
               </Badge>
               <Link
                 href={`/prompt/${item.id}`}
                 className="line-clamp-2 font-display text-base font-semibold leading-snug hover:text-primary sm:text-lg"
               >
-                {item.prompt.title}
+                {copy.title}
               </Link>
-              <p className="mt-1.5 text-sm text-muted-foreground">작성자: {SELLER_NAME}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{item.date} 구매</p>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {t("purchases.author", { name: SELLER_NAME })}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("purchases.boughtOn", { date: item.date })}
+              </p>
             </div>
           </div>
 
           <div className="flex flex-col items-stretch gap-3 sm:items-end">
             <p className="font-display text-lg font-bold sm:text-xl">
-              {formatPrice(item.prompt.price)}
+              {formatPrice(item.prompt.price, locale)}
             </p>
             <div className="flex gap-2">
               <Button type="button" variant="outline" size="sm" className="h-8" onClick={onDownload}>
                 <Download data-icon="inline-start" />
-                다운로드
+                {t("purchases.download")}
               </Button>
               <Button type="button" variant="outline" size="sm" className="h-8" onClick={onReview}>
                 <Star data-icon="inline-start" />
-                {hasReview ? "리뷰 수정" : "리뷰"}
+                {hasReview ? t("purchases.reviewEdit") : t("purchases.review")}
               </Button>
             </div>
           </div>
@@ -457,6 +480,8 @@ function DownloadDialog({
   onOpenChange: (open: boolean) => void
   onConfirm: () => void
 }) {
+  const { t, locale } = useI18n()
+  const copy = item ? localizePrompt(item.prompt, locale) : null
   return (
     <Dialog open={Boolean(item)} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
@@ -466,15 +491,15 @@ function DownloadDialog({
               <Download className="size-5" />
             </div>
             <div>
-              <DialogTitle className="font-display text-xl">프롬프트 다운로드</DialogTitle>
+              <DialogTitle className="font-display text-xl">{t("purchases.downloadTitle")}</DialogTitle>
               <DialogDescription className="mt-1.5">
-                구매하신 프롬프트 본문을 .txt 파일로 저장합니다.
+                {t("purchases.downloadDesc")}
               </DialogDescription>
             </div>
           </DialogHeader>
         </div>
 
-        {item && (
+        {item && copy && (
           <div className="px-5 py-4">
             <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 p-3">
               <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -486,8 +511,10 @@ function DownloadDialog({
                 />
               </div>
               <div className="min-w-0">
-                <p className="line-clamp-2 text-sm font-medium leading-snug">{item.prompt.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{item.date} 구매</p>
+                <p className="line-clamp-2 text-sm font-medium leading-snug">{copy.title}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("purchases.boughtOn", { date: item.date })}
+                </p>
               </div>
             </div>
           </div>
@@ -495,11 +522,11 @@ function DownloadDialog({
 
         <DialogFooter className="mx-0 mb-0 rounded-none border-t bg-muted/30 p-4 sm:justify-end">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            취소
+            {t("purchases.cancel")}
           </Button>
           <Button type="button" onClick={onConfirm}>
             <Download data-icon="inline-start" />
-            다운로드
+            {t("purchases.download")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -518,6 +545,8 @@ function ReviewDialog({
   onOpenChange: (open: boolean) => void
   onSave: (data: { rating: number; content: string }) => void
 }) {
+  const { t, locale } = useI18n()
+  const copy = item ? localizePrompt(item.prompt, locale) : null
   const [rating, setRating] = React.useState(0)
   const [hovered, setHovered] = React.useState(0)
   const [content, setContent] = React.useState("")
@@ -531,11 +560,11 @@ function ReviewDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (rating < 1) {
-      toast.error("별점을 선택해주세요")
+      toast.error(t("toast.ratingRequired"))
       return
     }
     if (!content.trim()) {
-      toast.error("리뷰 내용을 입력해주세요")
+      toast.error(t("toast.reviewContentRequired"))
       return
     }
     onSave({ rating, content })
@@ -553,16 +582,16 @@ function ReviewDialog({
             </div>
             <div>
               <DialogTitle className="font-display text-xl">
-                {review ? "리뷰 수정" : "리뷰 작성"}
+                {review ? t("purchases.reviewEdit") : t("purchases.reviewWrite")}
               </DialogTitle>
               <DialogDescription className="mt-1.5">
-                구매 경험과 활용 팁을 공유해 주세요.
+                {t("purchases.reviewHint")}
               </DialogDescription>
             </div>
           </DialogHeader>
         </div>
 
-        {item && (
+        {item && copy && (
           <div className="border-b border-border px-5 py-4">
             <div className="flex items-center gap-3">
               <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-muted ring-1 ring-border/60">
@@ -575,9 +604,9 @@ function ReviewDialog({
               </div>
               <div className="min-w-0">
                 <Badge variant="secondary" className="mb-1">
-                  {item.prompt.category}
+                  {t(`category.${item.prompt.category}`)}
                 </Badge>
-                <p className="line-clamp-2 text-sm font-medium leading-snug">{item.prompt.title}</p>
+                <p className="line-clamp-2 text-sm font-medium leading-snug">{copy.title}</p>
               </div>
             </div>
           </div>
@@ -585,11 +614,11 @@ function ReviewDialog({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-5 py-5">
           <div>
-            <p className="mb-2 text-sm font-medium">별점</p>
+            <p className="mb-2 text-sm font-medium">{t("purchases.rating")}</p>
             <div
               className="flex items-center gap-1"
               role="radiogroup"
-              aria-label="별점"
+              aria-label={t("purchases.rating")}
               onMouseLeave={() => setHovered(0)}
             >
               {[1, 2, 3, 4, 5].map((value) => (
@@ -599,7 +628,7 @@ function ReviewDialog({
                   onClick={() => setRating(value)}
                   onMouseEnter={() => setHovered(value)}
                   className="rounded-md p-1 text-muted-foreground transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`${value}점`}
+                  aria-label={t("purchases.ratingValue", { n: value })}
                   aria-checked={rating === value}
                   role="radio"
                 >
@@ -612,30 +641,30 @@ function ReviewDialog({
                 </button>
               ))}
               <span className="ml-2 text-sm text-muted-foreground">
-                {displayRating > 0 ? `${displayRating}/5` : "선택해주세요"}
+                {displayRating > 0 ? `${displayRating}/5` : t("purchases.ratingPick")}
               </span>
             </div>
           </div>
 
           <div>
             <label htmlFor="review-content" className="mb-2 block text-sm font-medium">
-              리뷰 내용
+              {t("purchases.content")}
             </label>
             <textarea
               id="review-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={5}
-              placeholder="사용 후기나 팁을 적어주세요"
+              placeholder={t("purchases.contentPlaceholder")}
               className="w-full resize-y rounded-xl border border-input bg-muted/30 px-3.5 py-3 text-sm leading-relaxed outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:bg-background focus-visible:ring-3 focus-visible:ring-ring/50"
             />
           </div>
 
           <DialogFooter className="mx-0 mb-0 rounded-none border-0 bg-transparent p-0 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              취소
+              {t("purchases.cancel")}
             </Button>
-            <Button type="submit">{review ? "리뷰 수정" : "리뷰 등록"}</Button>
+            <Button type="submit">{review ? t("purchases.update") : t("purchases.submit")}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

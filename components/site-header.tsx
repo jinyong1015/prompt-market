@@ -6,6 +6,7 @@ import { Heart, ShoppingCart, User as UserIcon, Receipt, LogOut, Sparkles } from
 import { toast } from "sonner"
 
 import { useStore } from "@/lib/store"
+import { useI18n } from "@/lib/i18n"
 import { buttonVariants } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -17,15 +18,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { LocaleToggle } from "@/components/locale-toggle"
 import { cn } from "@/lib/utils"
 
 export function SiteHeader() {
   const router = useRouter()
   const { user, cart, wishlist, logout } = useStore()
+  const { t } = useI18n()
 
   function handleLogout() {
     logout()
-    toast.success("로그아웃되었습니다")
+    toast.success(t("toast.loggedOut"))
     router.push("/")
   }
 
@@ -41,17 +45,19 @@ export function SiteHeader() {
           </span>
         </Link>
 
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-1 sm:gap-2">
+          <LocaleToggle />
+          <ThemeToggle />
           {!user ? (
             <>
               <Link
                 href="/login"
                 className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
               >
-                로그인
+                {t("header.login")}
               </Link>
               <Link href="/signup" className={cn(buttonVariants({ size: "sm" }))}>
-                회원가입
+                {t("header.signup")}
               </Link>
             </>
           ) : (
@@ -59,7 +65,7 @@ export function SiteHeader() {
               <Link
                 href="/wishlist"
                 className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
-                aria-label={`찜 내역, ${wishlist.length}개`}
+                aria-label={t("header.wishlistAria", { count: wishlist.length })}
               >
                 <Heart className="size-5" />
                 {wishlist.length > 0 && (
@@ -72,7 +78,7 @@ export function SiteHeader() {
               <Link
                 href="/cart"
                 className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
-                aria-label={`장바구니, ${cart.length}개 담김`}
+                aria-label={t("header.cartAria", { count: cart.length })}
               >
                 <ShoppingCart className="size-5" />
                 {cart.length > 0 && (
@@ -85,7 +91,7 @@ export function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label="사용자 메뉴"
+                  aria-label={t("header.userMenu")}
                 >
                   <Avatar className="size-8">
                     {user.avatar && <AvatarImage src={user.avatar} alt={user.nickname} />}
@@ -108,22 +114,22 @@ export function SiteHeader() {
                   <DropdownMenuGroup>
                     <DropdownMenuItem onClick={() => router.push("/profile")}>
                       <UserIcon />
-                      프로필 관리
+                      {t("header.profile")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/wishlist")}>
                       <Heart />
-                      찜 내역
+                      {t("header.wishlist")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/my-page")}>
                       <Receipt />
-                      구매 내역
+                      {t("header.purchases")}
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem variant="destructive" onClick={handleLogout}>
                       <LogOut />
-                      로그아웃
+                      {t("header.logout")}
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                 </DropdownMenuContent>

@@ -10,20 +10,31 @@ PRD(`docs/PRD.md`)와 현재 코드 기준.
 ### 기반
 
 - [x] Next.js App Router + React + Tailwind + shadcn + sonner 구성
-- [x] 시드 상품 데이터 (`lib/data.ts`, 12개)
-- [x] 전역 상태 Context (`lib/store.tsx`: 유저·장바구니·구매내역, 새로고침 시 초기화)
+- [x] 시드 상품 데이터 (`lib/data.ts`, 12개) + 상품별 고유 이미지 (`public/prompts/{id}.png`)
+- [x] 전역 상태 Context (`lib/store.tsx`: 유저·장바구니·찜·구매내역·리뷰, 새로고침 시 초기화)
+- [x] 전역 Provider (`components/providers.tsx`: Theme → I18n → Store)
+- [x] 제목 폰트: 유한킴벌리 푸른숲체 (`font-display`)
+
+### 테마·다국어
+
+- [x] 라이트/다크 테마 토글 (`next-themes`, `html.dark`, 저장 키 `prompt-market-theme`)
+- [x] CSS 토큰 `:root` / `.dark` (`app/globals.css`), 토스트 테마 연동
+- [x] 한국어/영어 전환 (`lib/i18n.tsx`, 저장 키 `prompt-market-locale`, `<html lang>` 동기화)
+- [x] 상품 영문 카피 (`lib/prompt-i18n.ts`: 제목·설명·활용법·주의사항)
+- [x] 가격·compact 금액 로케일 포맷 (`5,000원` / `₩5,000`, `₩N만` / `₩Nk`)
+- [x] 헤더 언어·테마 토글 (로그인 여부와 무관)
 
 ### 화면·플로우
 
 - [x] 공통 헤더: 로고, 로그인·회원가입 / 찜·장바구니 배지, 프로필 드롭다운·로그아웃
 - [x] 홈 목록 (`/`) — PromptCard 그리드, 찜·담기/상세/구매완료 상태
 - [x] 프롬프트 상세 (`/prompt/[id]`) — 설명·갤러리·찜·미구매 잠금·구매 후 본문·복사
-- [x] 데모 로그인 (`/login`) — 이메일만 사용, 비밀번호 미검증
+- [x] 데모 로그인 (`/login`) — 이메일만 사용, 비밀번호 미검증, 기본 로그인 유저
 - [x] 데모 회원가입 (`/signup`) — 닉네임·이메일·비밀번호(UI만), 가입 후 즉시 로그인
 - [x] 찜하기 / 찜 내역 (`/wishlist`) — 카드·상세 하트, 목록·해제·장바구니 담기
 - [x] 장바구니 (`/cart`) — 담기(중복 불가)/삭제/합계, 로그인 가드
 - [x] 결제 다이얼로그 — 토스페이먼츠 **시뮬레이션** (`setTimeout`)
-- [x] 구매 내역 (`/my-page`) — 목록·다운로드·리뷰·상세 재진입
+- [x] 구매 내역 (`/my-page`) — 통계·검색·상태/정렬 드롭다운·목록·다운로드/리뷰 모달·영수증 `.txt`
 - [x] 동일 상품 1회 구매·장바구니 중복 담기 차단
 - [x] 프로필 (`/profile`) — 닉네임 수정, 아바타 blob URL(세션 한정)
 - [x] 토스트·인증 가드 스켈레톤·결제 중 스피너
@@ -75,4 +86,7 @@ PRD(`docs/PRD.md`)와 현재 코드 기준.
 
 - [ ] `/my-page` → `/purchase-history` 통일 + 리다이렉트
 - [ ] 모바일 메뉴
+- [ ] 테마: OS 시스템 설정 따르기 (`enableSystem`)
+- [ ] i18n: 라우트 locale / next-intl, 구매 본문(`promptText`) 번역
+- [ ] 유저·장바구니 등 세션 영속화(현재는 테마·언어만 `localStorage`)
 - [ ] README·기술 문서(SSR/캐시/웹훅 보안 등) 정리

@@ -6,8 +6,9 @@ import { Check, Heart, ShoppingCart } from "lucide-react"
 import { toast } from "sonner"
 
 import type { Prompt } from "@/lib/data"
-import { formatPrice } from "@/lib/data"
 import { useStore } from "@/lib/store"
+import { formatPrice, useI18n } from "@/lib/i18n"
+import { localizePrompt } from "@/lib/prompt-i18n"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -15,40 +16,42 @@ import { cn } from "@/lib/utils"
 
 export function PromptCard({ prompt }: { prompt: Prompt }) {
   const { user, addToCart, isPurchased, isInCart, isInWishlist, toggleWishlist } = useStore()
+  const { t, locale } = useI18n()
+  const copy = localizePrompt(prompt, locale)
   const purchased = isPurchased(prompt.id)
   const inCart = isInCart(prompt.id)
   const wishlisted = isInWishlist(prompt.id)
 
   function handleAdd() {
     if (!user) {
-      toast.error("로그인이 필요합니다")
+      toast.error(t("toast.loginRequired"))
       return
     }
     if (purchased) {
-      toast.error("이미 구매한 상품입니다")
+      toast.error(t("toast.alreadyPurchased"))
       return
     }
     if (inCart) {
-      toast.error("이미 장바구니에 있습니다")
+      toast.error(t("toast.alreadyInCart"))
       return
     }
     const ok = addToCart(prompt.id)
     if (!ok) {
-      toast.error("이미 장바구니에 있습니다")
+      toast.error(t("toast.alreadyInCart"))
       return
     }
-    toast.success("장바구니에 담았습니다")
+    toast.success(t("toast.addedToCart"))
   }
 
   function handleWishlist(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (!user) {
-      toast.error("로그인이 필요합니다")
+      toast.error(t("toast.loginRequired"))
       return
     }
     toggleWishlist(prompt.id)
-    toast.success(wishlisted ? "찜을 해제했습니다" : "찜 목록에 추가했습니다")
+    toast.success(wishlisted ? t("toast.wishlistRemoved") : t("toast.wishlistAdded"))
   }
 
   return (
@@ -57,17 +60,17 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={prompt.images[0] || "/placeholder.svg"}
-          alt={`${prompt.title} 결과물 예시`}
+          alt={t("card.imageAlt", { title: copy.title })}
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
           onError={(e) => {
             e.currentTarget.src = "/placeholder.svg"
           }}
         />
         <Badge className="absolute left-3 top-3 bg-background/85 text-foreground backdrop-blur-sm" variant="secondary">
-          {prompt.category}
+          {t(`category.${prompt.category}`)}
         </Badge>
         {purchased && (
-          <Badge className="absolute right-12 top-3">구매완료</Badge>
+          <Badge className="absolute right-12 top-3">{t("card.purchased")}</Badge>
         )}
         <Button
           type="button"
@@ -75,7 +78,7 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
           size="icon"
           className="absolute right-3 top-3 size-8 rounded-full bg-background/85 backdrop-blur-sm hover:bg-background"
           onClick={handleWishlist}
-          aria-label={wishlisted ? "찜 해제" : "찜하기"}
+          aria-label={wishlisted ? t("card.wishlistRemove") : t("card.wishlistAdd")}
           aria-pressed={wishlisted}
         >
           <Heart className={cn("size-4", wishlisted && "fill-primary text-primary")} />
@@ -86,11 +89,11 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
         <p className="text-xs font-medium text-muted-foreground">{prompt.model}</p>
         <Link href={`/prompt/${prompt.id}`}>
           <h3 className="line-clamp-2 font-display text-base font-semibold leading-snug text-balance transition-colors group-hover:text-primary">
-            {prompt.title}
+            {copy.title}
           </h3>
         </Link>
         <p className="mt-auto pt-2 font-display text-lg font-bold text-foreground">
-          {formatPrice(prompt.price)}
+          {formatPrice(prompt.price, locale)}
         </p>
       </CardContent>
 
@@ -99,24 +102,24 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
           href={`/prompt/${prompt.id}`}
           className={cn(buttonVariants({ variant: "outline" }), "flex-1")}
         >
-          상세보기
+          {t("card.details")}
         </Link>
         {purchased ? (
           <Button className="flex-1" disabled>
             <Check data-icon="inline-start" />
-            구매완료
+            {t("card.purchased")}
           </Button>
         ) : (
           <Button className="flex-1" onClick={handleAdd} disabled={inCart}>
             {inCart ? (
               <>
                 <Check data-icon="inline-start" />
-                장바구니에 있음
+                {t("card.inCart")}
               </>
             ) : (
               <>
                 <ShoppingCart data-icon="inline-start" />
-                장바구니 담기
+                {t("card.addToCart")}
               </>
             )}
           </Button>
