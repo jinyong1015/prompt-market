@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Heart, ShoppingCart, X } from "lucide-react"
+import { Check, Heart, ShoppingCart, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { getPrompt, formatPrice } from "@/lib/data"
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
 
 export default function WishlistPage() {
   const router = useRouter()
-  const { user, wishlist, removeFromWishlist, addToCart, getCartQuantity, isPurchased } = useStore()
+  const { user, wishlist, removeFromWishlist, addToCart, isInCart, isPurchased } = useStore()
 
   React.useEffect(() => {
     if (!user) router.replace("/login")
@@ -31,10 +31,21 @@ export default function WishlistPage() {
     toast.success("찜을 해제했습니다")
   }
 
-  function handleAddToCart(id: string) {
-    const quantity = getCartQuantity(id)
-    addToCart(id)
-    toast.success(quantity > 0 ? "수량을 추가했습니다" : "장바구니에 담았습니다")
+  function handleAddToCart(id: string, purchased: boolean, inCart: boolean) {
+    if (purchased) {
+      toast.error("이미 구매한 상품입니다")
+      return
+    }
+    if (inCart) {
+      toast.error("이미 장바구니에 있습니다")
+      return
+    }
+    const ok = addToCart(id)
+    if (!ok) {
+      toast.error("이미 장바구니에 있습니다")
+      return
+    }
+    toast.success("장바구니에 담았습니다")
   }
 
   if (items.length === 0) {
@@ -65,7 +76,7 @@ export default function WishlistPage() {
 
       <ul className="mt-8 flex flex-col gap-4">
         {items.map((prompt) => {
-          const cartQuantity = getCartQuantity(prompt.id)
+          const inCart = isInCart(prompt.id)
           const purchased = isPurchased(prompt.id)
 
           return (
@@ -99,10 +110,20 @@ export default function WishlistPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleAddToCart(prompt.id)}
+                        onClick={() => handleAddToCart(prompt.id, purchased, inCart)}
+                        disabled={inCart}
                       >
-                        <ShoppingCart data-icon="inline-start" />
-                        {cartQuantity > 0 ? `담기 (${cartQuantity})` : "담기"}
+                        {inCart ? (
+                          <>
+                            <Check data-icon="inline-start" />
+                            담김
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart data-icon="inline-start" />
+                            담기
+                          </>
+                        )}
                       </Button>
                     )}
                     <Button

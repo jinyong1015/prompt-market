@@ -16,14 +16,14 @@ import { cn } from "@/lib/utils"
 
 export function PromptDetail({ prompt }: { prompt: Prompt }) {
   const router = useRouter()
-  const { user, addToCart, isPurchased, isInWishlist, toggleWishlist, getCartQuantity } = useStore()
+  const { user, addToCart, isPurchased, isInCart, isInWishlist, toggleWishlist } = useStore()
   const [activeImage, setActiveImage] = React.useState(0)
   const [buyOpen, setBuyOpen] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
 
   const purchased = isPurchased(prompt.id)
+  const inCart = isInCart(prompt.id)
   const wishlisted = isInWishlist(prompt.id)
-  const cartQuantity = getCartQuantity(prompt.id)
 
   function requireLogin() {
     toast.error("로그인이 필요합니다")
@@ -32,8 +32,20 @@ export function PromptDetail({ prompt }: { prompt: Prompt }) {
 
   function handleAdd() {
     if (!user) return requireLogin()
-    addToCart(prompt.id)
-    toast.success(cartQuantity > 0 ? "수량을 추가했습니다" : "장바구니에 담았습니다")
+    if (purchased) {
+      toast.error("이미 구매한 상품입니다")
+      return
+    }
+    if (inCart) {
+      toast.error("이미 장바구니에 있습니다")
+      return
+    }
+    const ok = addToCart(prompt.id)
+    if (!ok) {
+      toast.error("이미 장바구니에 있습니다")
+      return
+    }
+    toast.success("장바구니에 담았습니다")
   }
 
   function handleWishlist() {
@@ -44,6 +56,10 @@ export function PromptDetail({ prompt }: { prompt: Prompt }) {
 
   function handleBuyNow() {
     if (!user) return requireLogin()
+    if (purchased) {
+      toast.error("이미 구매한 상품입니다")
+      return
+    }
     setBuyOpen(true)
   }
 
@@ -151,9 +167,9 @@ export function PromptDetail({ prompt }: { prompt: Prompt }) {
             <div className="flex flex-col gap-4">
               <LockedContent />
               <div className="flex flex-col gap-2 sm:flex-row">
-                <Button variant="outline" className="flex-1" onClick={handleAdd}>
-                  <ShoppingCart data-icon="inline-start" />
-                  {cartQuantity > 0 ? `장바구니 담기 (${cartQuantity})` : "장바구니 담기"}
+                <Button variant="outline" className="flex-1" onClick={handleAdd} disabled={inCart}>
+                  {inCart ? <Check data-icon="inline-start" /> : <ShoppingCart data-icon="inline-start" />}
+                  {inCart ? "장바구니에 있음" : "장바구니 담기"}
                 </Button>
                 <Button className="flex-1" onClick={handleBuyNow}>
                   <Zap data-icon="inline-start" />

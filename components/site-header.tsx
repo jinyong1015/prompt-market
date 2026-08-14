@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils"
 
 export function SiteHeader() {
   const router = useRouter()
-  const { user, cartCount, wishlist, logout } = useStore()
+  const { user, cart, wishlist, logout } = useStore()
 
   function handleLogout() {
     logout()
@@ -72,12 +72,12 @@ export function SiteHeader() {
               <Link
                 href="/cart"
                 className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "relative")}
-                aria-label={`장바구니, ${cartCount}개 담김`}
+                aria-label={`장바구니, ${cart.length}개 담김`}
               >
                 <ShoppingCart className="size-5" />
-                {cartCount > 0 && (
+                {cart.length > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                    {cartCount}
+                    {cart.length}
                   </span>
                 )}
               </Link>

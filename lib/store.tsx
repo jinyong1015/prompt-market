@@ -8,16 +8,18 @@ export interface User {
   avatar: string | null
 }
 
-export interface CartItem {
-  id: string
-  quantity: number
+export interface Review {
+  rating: number
+  content: string
+  updatedAt: string
 }
 
 interface StoreState {
   user: User | null
-  cart: CartItem[]
+  cart: string[]
   wishlist: string[]
   purchases: { id: string; date: string }[]
+  reviews: Record<string, Review>
 }
 
 interface StoreContextValue extends StoreState {
@@ -25,17 +27,16 @@ interface StoreContextValue extends StoreState {
   signup: (data: { email: string; nickname: string }) => void
   logout: () => void
   updateProfile: (data: Partial<Pick<User, "nickname" | "avatar">>) => void
-  addToCart: (id: string, quantity?: number) => void
+  addToCart: (id: string) => boolean
   removeFromCart: (id: string) => void
-  setCartQuantity: (id: string, quantity: number) => void
-  getCartQuantity: (id: string) => number
   isInCart: (id: string) => boolean
-  cartCount: number
   toggleWishlist: (id: string) => void
   isInWishlist: (id: string) => boolean
   removeFromWishlist: (id: string) => void
   isPurchased: (id: string) => boolean
   checkout: (ids: string[]) => void
+  saveReview: (promptId: string, data: { rating: number; content: string }) => void
+  getReview: (promptId: string) => Review | undefined
 }
 
 const StoreContext = React.createContext<StoreContextValue | null>(null)
@@ -49,9 +50,10 @@ const defaultUser: User = {
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Prototype: user starts logged in so the full flow is explorable.
   const [user, setUser] = React.useState<User | null>(defaultUser)
-  const [cart, setCart] = React.useState<CartItem[]>([])
+  const [cart, setCart] = React.useState<string[]>([])
   const [wishlist, setWishlist] = React.useState<string[]>([])
   const [purchases, setPurchases] = React.useState<{ id: string; date: string }[]>([])
+  const [reviews, setReviews] = React.useState<Record<string, Review>>({})
 
   const login = React.useCallback((email: string) => {
     setUser({ email, nickname: email.split("@")[0] || "사용자", avatar: null })
@@ -78,46 +80,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [],
   )
 
-  const addToCart = React.useCallback((id: string, quantity = 1) => {
-    const delta = Math.max(1, quantity)
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === id)
-      if (existing) {
-        return prev.map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity + delta } : item,
-        )
-      }
-      return [...prev, { id, quantity: delta }]
-    })
-  }, [])
+  const isPurchased = React.useCallback(
+    (id: string) => purchases.some((p) => p.id === id),
+    [purchases],
+  )
+
+  const isInCart = React.useCallback((id: string) => cart.includes(id), [cart])
+
+  /** Returns false if already purchased or already in cart (no duplicate). */
+  const addToCart = React.useCallback(
+    (id: string) => {
+      if (purchases.some((p) => p.id === id)) return false
+      if (cart.includes(id)) return false
+      setCart((prev) => [...prev, id])
+      return true
+    },
+    [cart, purchases],
+  )
 
   const removeFromCart = React.useCallback((id: string) => {
-    setCart((prev) => prev.filter((item) => item.id !== id))
+    setCart((prev) => prev.filter((c) => c !== id))
   }, [])
-
-  const setCartQuantity = React.useCallback((id: string, quantity: number) => {
-    if (quantity < 1) {
-      setCart((prev) => prev.filter((item) => item.id !== id))
-      return
-    }
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === id)
-      if (!existing) return [...prev, { id, quantity }]
-      return prev.map((item) => (item.id === id ? { ...item, quantity } : item))
-    })
-  }, [])
-
-  const getCartQuantity = React.useCallback(
-    (id: string) => cart.find((item) => item.id === id)?.quantity ?? 0,
-    [cart],
-  )
-
-  const isInCart = React.useCallback((id: string) => cart.some((item) => item.id === id), [cart])
-
-  const cartCount = React.useMemo(
-    () => cart.reduce((sum, item) => sum + item.quantity, 0),
-    [cart],
-  )
 
   const toggleWishlist = React.useCallback((id: string) => {
     setWishlist((prev) => (prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]))
@@ -129,20 +112,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const isInWishlist = React.useCallback((id: string) => wishlist.includes(id), [wishlist])
 
-  const isPurchased = React.useCallback(
-    (id: string) => purchases.some((p) => p.id === id),
-    [purchases],
-  )
-
   const checkout = React.useCallback((ids: string[]) => {
     const date = new Date().toISOString().slice(0, 10)
+    const uniqueIds = [...new Set(ids)]
     setPurchases((prev) => {
       const existing = new Set(prev.map((p) => p.id))
-      const next = ids.filter((id) => !existing.has(id)).map((id) => ({ id, date }))
+      const next = uniqueIds.filter((id) => !existing.has(id)).map((id) => ({ id, date }))
       return [...next, ...prev]
     })
-    setCart((prev) => prev.filter((item) => !ids.includes(item.id)))
+    setCart((prev) => prev.filter((c) => !uniqueIds.includes(c)))
   }, [])
+
+  const saveReview = React.useCallback((promptId: string, data: { rating: number; content: string }) => {
+    setReviews((prev) => ({
+      ...prev,
+      [promptId]: {
+        rating: data.rating,
+        content: data.content.trim(),
+        updatedAt: new Date().toISOString().slice(0, 10),
+      },
+    }))
+  }, [])
+
+  const getReview = React.useCallback((promptId: string) => reviews[promptId], [reviews])
 
   const value = React.useMemo(
     () => ({
@@ -150,42 +142,42 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       cart,
       wishlist,
       purchases,
+      reviews,
       login,
       signup,
       logout,
       updateProfile,
       addToCart,
       removeFromCart,
-      setCartQuantity,
-      getCartQuantity,
       isInCart,
-      cartCount,
       toggleWishlist,
       isInWishlist,
       removeFromWishlist,
       isPurchased,
       checkout,
+      saveReview,
+      getReview,
     }),
     [
       user,
       cart,
       wishlist,
       purchases,
+      reviews,
       login,
       signup,
       logout,
       updateProfile,
       addToCart,
       removeFromCart,
-      setCartQuantity,
-      getCartQuantity,
       isInCart,
-      cartCount,
       toggleWishlist,
       isInWishlist,
       removeFromWishlist,
       isPurchased,
       checkout,
+      saveReview,
+      getReview,
     ],
   )
 

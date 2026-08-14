@@ -14,18 +14,30 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 export function PromptCard({ prompt }: { prompt: Prompt }) {
-  const { user, addToCart, isPurchased, isInWishlist, toggleWishlist, getCartQuantity } = useStore()
+  const { user, addToCart, isPurchased, isInCart, isInWishlist, toggleWishlist } = useStore()
   const purchased = isPurchased(prompt.id)
+  const inCart = isInCart(prompt.id)
   const wishlisted = isInWishlist(prompt.id)
-  const cartQuantity = getCartQuantity(prompt.id)
 
   function handleAdd() {
     if (!user) {
       toast.error("로그인이 필요합니다")
       return
     }
-    addToCart(prompt.id)
-    toast.success(cartQuantity > 0 ? "수량을 추가했습니다" : "장바구니에 담았습니다")
+    if (purchased) {
+      toast.error("이미 구매한 상품입니다")
+      return
+    }
+    if (inCart) {
+      toast.error("이미 장바구니에 있습니다")
+      return
+    }
+    const ok = addToCart(prompt.id)
+    if (!ok) {
+      toast.error("이미 장바구니에 있습니다")
+      return
+    }
+    toast.success("장바구니에 담았습니다")
   }
 
   function handleWishlist(e: MouseEvent) {
@@ -95,9 +107,18 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
             구매완료
           </Button>
         ) : (
-          <Button className="flex-1" onClick={handleAdd}>
-            <ShoppingCart data-icon="inline-start" />
-            {cartQuantity > 0 ? `담기 (${cartQuantity})` : "장바구니 담기"}
+          <Button className="flex-1" onClick={handleAdd} disabled={inCart}>
+            {inCart ? (
+              <>
+                <Check data-icon="inline-start" />
+                장바구니에 있음
+              </>
+            ) : (
+              <>
+                <ShoppingCart data-icon="inline-start" />
+                장바구니 담기
+              </>
+            )}
           </Button>
         )}
       </CardFooter>
