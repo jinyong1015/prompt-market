@@ -1,0 +1,18 @@
+import { auth } from "@clerk/nextjs/server"
+import { createClient } from "@supabase/supabase-js"
+
+import { getSupabaseEnv } from "@/lib/supabase/env"
+
+export function createServerSupabaseClient() {
+  const { url, publishableKey } = getSupabaseEnv()
+
+  return createClient(url, publishableKey, {
+    async accessToken() {
+      return (await auth()).getToken()
+    },
+  })
+}
+
+export async function createClient() {
+  return createServerSupabaseClient()
+}

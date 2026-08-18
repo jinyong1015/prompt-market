@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Heart, ShoppingCart, User as UserIcon, Receipt, LogOut, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
+import { SignInButton, SignUpButton, useAuth, useClerk, useUser } from "@clerk/nextjs"
 import { useStore } from "@/lib/store"
 import { useI18n } from "@/lib/i18n"
 import { buttonVariants } from "@/components/ui/button"
@@ -24,14 +25,12 @@ import { cn } from "@/lib/utils"
 
 export function SiteHeader() {
   const router = useRouter()
-  const { user, cart, wishlist, logout } = useStore()
+  const { cart, wishlist } = useStore()
   const { t } = useI18n()
 
-  function handleLogout() {
-    logout()
-    toast.success(t("toast.loggedOut"))
-    router.push("/")
-  }
+  const { isSignedIn, isLoaded } = useAuth()
+  const { user: clerkUser } = useUser()
+  const { signOut } = useClerk()
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -48,17 +47,22 @@ export function SiteHeader() {
         <nav className="flex items-center gap-1 sm:gap-2">
           <LocaleToggle />
           <ThemeToggle />
-          {!user ? (
+
+          {!isLoaded || !isSignedIn ? (
             <>
-              <Link
-                href="/login"
-                className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
-              >
-                {t("header.login")}
-              </Link>
-              <Link href="/signup" className={cn(buttonVariants({ size: "sm" }))}>
-                {t("header.signup")}
-              </Link>
+              <SignInButton mode="redirect">
+                <button
+                  type="button"
+                  className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+                >
+                  {t("header.login")}
+                </button>
+              </SignInButton>
+              <SignUpButton mode="redirect">
+                <button type="button" className={cn(buttonVariants({ size: "sm" }))}>
+                  {t("header.signup")}
+                </button>
+              </SignUpButton>
             </>
           ) : (
             <>
@@ -94,23 +98,34 @@ export function SiteHeader() {
                   aria-label={t("header.userMenu")}
                 >
                   <Avatar className="size-8">
-                    {user.avatar && <AvatarImage src={user.avatar} alt={user.nickname} />}
+                    {clerkUser?.imageUrl ? (
+                      <AvatarImage src={clerkUser.imageUrl} alt={clerkUser.fullName ?? "User"} />
+                    ) : null}
                     <AvatarFallback className="bg-primary/15 text-primary">
-                      {user.nickname.slice(0, 1)}
+                      {(clerkUser?.firstName ?? clerkUser?.fullName ?? "U").slice(0, 1)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden text-sm font-medium sm:inline">{user.nickname}</span>
+                  <span className="hidden text-sm font-medium sm:inline">
+                    {clerkUser?.firstName ?? clerkUser?.fullName ?? "User"}
+                  </span>
                 </DropdownMenuTrigger>
+
                 <DropdownMenuContent align="end" className="w-52">
                   <DropdownMenuGroup>
                     <DropdownMenuLabel>
                       <div className="flex flex-col">
-                        <span className="text-sm font-medium text-foreground">{user.nickname}</span>
-                        <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                        <span className="text-sm font-medium text-foreground">
+                          {clerkUser?.firstName ?? clerkUser?.fullName ?? "User"}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {clerkUser?.primaryEmailAddress?.emailAddress ?? ""}
+                        </span>
                       </div>
                     </DropdownMenuLabel>
                   </DropdownMenuGroup>
+
                   <DropdownMenuSeparator />
+
                   <DropdownMenuGroup>
                     <DropdownMenuItem onClick={() => router.push("/profile")}>
                       <UserIcon />
@@ -125,9 +140,17 @@ export function SiteHeader() {
                       {t("header.purchases")}
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
+
                   <DropdownMenuSeparator />
+
                   <DropdownMenuGroup>
-                    <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={async () => {
+                        await signOut({ redirectUrl: "/" })
+                        toast.success(t("toast.loggedOut"))
+                      }}
+                    >
                       <LogOut />
                       {t("header.logout")}
                     </DropdownMenuItem>

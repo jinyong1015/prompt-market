@@ -1,3 +1,6 @@
+import { ClerkProvider } from "@clerk/nextjs"
+import { koKR } from "@clerk/localizations/ko-KR"
+import { shadcn } from "@clerk/ui/themes"
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
 import { Space_Grotesk, Inter } from "next/font/google"
@@ -41,14 +44,16 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning className={`bg-background ${spaceGrotesk.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
-        <Providers>
-          <div className="flex min-h-dvh flex-col">
-            <SiteHeader />
-            <main className="flex-1">{children}</main>
-          </div>
-          <Toaster position="bottom-right" richColors duration={1800} />
-        </Providers>
-        {process.env.NODE_ENV === "production" && <Analytics />}
+        <ClerkProvider localization={koKR} appearance={{ theme: shadcn }}>
+          <Providers>
+            <div className="flex min-h-dvh flex-col">
+              <SiteHeader />
+              <main className="flex-1">{children}</main>
+            </div>
+            <Toaster position="bottom-right" richColors duration={1800} />
+          </Providers>
+          {process.env.NODE_ENV === "production" && <Analytics />}
+        </ClerkProvider>
       </body>
     </html>
   )
