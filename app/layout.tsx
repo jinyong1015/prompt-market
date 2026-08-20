@@ -8,6 +8,12 @@ import { Space_Grotesk, Inter } from "next/font/google"
 import { Providers } from "@/components/providers"
 import { SiteHeader } from "@/components/site-header"
 import { Toaster } from "@/components/ui/sonner"
+import {
+  getSiteUrl,
+  SITE_DESCRIPTION,
+  SITE_KEYWORDS,
+  SITE_NAME,
+} from "@/lib/seo/config"
 import "./globals.css"
 
 const gaId = process.env.NEXT_PUBLIC_GA_ID
@@ -25,10 +31,48 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Prompt Market — AI Prompt Marketplace",
-  description:
-    "A marketplace for curated AI prompts. Discover image, illustration, and branding prompts.",
-  generator: "v0.app",
+  metadataBase: new URL(getSiteUrl()),
+  title: {
+    default: `${SITE_NAME} — AI 프롬프트 마켓플레이스`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [...SITE_KEYWORDS],
+  authors: [{ name: SITE_NAME }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "ko_KR",
+    url: "/",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — AI 프롬프트 마켓플레이스`,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — AI 프롬프트 마켓플레이스`,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
+  category: "shopping",
 }
 
 export const viewport: Viewport = {

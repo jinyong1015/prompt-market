@@ -1,0 +1,9 @@
+import type { Metadata } from "next"
+
+import { buildNoIndexMetadata } from "@/lib/seo/config"
+
+export const metadata: Metadata = buildNoIndexMetadata("회원가입")
+
+export default function SignUpLayout({ children }: { children: React.ReactNode }) {
+  return children
+}
