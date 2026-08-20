@@ -22,7 +22,7 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
   const inCart = isInCart(prompt.id)
   const wishlisted = isInWishlist(prompt.id)
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!user) {
       toast.error(t("toast.loginRequired"))
       return
@@ -35,7 +35,7 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
       toast.error(t("toast.alreadyInCart"))
       return
     }
-    const ok = addToCart(prompt.id)
+    const ok = await addToCart(prompt.id)
     if (!ok) {
       toast.error(t("toast.alreadyInCart"))
       return
@@ -43,14 +43,14 @@ export function PromptCard({ prompt }: { prompt: Prompt }) {
     toast.success(t("toast.addedToCart"))
   }
 
-  function handleWishlist(e: MouseEvent) {
+  async function handleWishlist(e: MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (!user) {
       toast.error(t("toast.loginRequired"))
       return
     }
-    toggleWishlist(prompt.id)
+    await toggleWishlist(prompt.id)
     toast.success(wishlisted ? t("toast.wishlistRemoved") : t("toast.wishlistAdded"))
   }
 

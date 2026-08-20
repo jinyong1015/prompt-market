@@ -4,6 +4,8 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { CheckCircle2, CreditCard } from "lucide-react"
 
+import { toast } from "sonner"
+
 import { useStore } from "@/lib/store"
 import { formatPrice, useI18n } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
@@ -35,12 +37,15 @@ export function CheckoutDialog({ open, onOpenChange, items, amount }: CheckoutDi
     if (open) setStatus("idle")
   }, [open])
 
-  function handlePay() {
+  async function handlePay() {
     setStatus("processing")
-    setTimeout(() => {
-      checkout(items)
-      setStatus("done")
-    }, 1400)
+    const result = await checkout(items)
+    if (!result.ok) {
+      setStatus("idle")
+      toast.error(result.error)
+      return
+    }
+    setStatus("done")
   }
 
   function handleGoToMyPage() {

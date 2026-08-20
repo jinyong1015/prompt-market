@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { ShoppingBag, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { getPrompt } from "@/lib/data"
+import { usePromptsByIds } from "@/lib/prompts/client"
 import { useStore } from "@/lib/store"
 import { formatPrice, useI18n } from "@/lib/i18n"
 import { localizePrompt } from "@/lib/prompt-i18n"
@@ -20,22 +20,24 @@ import { cn } from "@/lib/utils"
 
 export default function CartPage() {
   const router = useRouter()
-  const { user, cart, removeFromCart } = useStore()
+  const { user, cart, removeFromCart, isCommerceReady } = useStore()
   const { t, locale } = useI18n()
   const [checkoutOpen, setCheckoutOpen] = React.useState(false)
+  const promptItems = usePromptsByIds(cart)
 
   React.useEffect(() => {
-    if (!user) router.replace("/login")
+    if (!user) router.replace("/sign-in")
   }, [user, router])
 
-  if (!user) return <AuthPageSkeleton />
+  if (!user || !isCommerceReady || (cart.length > 0 && promptItems.length === 0)) {
+    return <AuthPageSkeleton />
+  }
 
-  const items = cart.map(getPrompt).filter((p): p is NonNullable<typeof p> => Boolean(p))
+  const items = promptItems
   const total = items.reduce((sum, p) => sum + p.price, 0)
 
   function handleRemove(id: string) {
-    removeFromCart(id)
-    toast.success(t("toast.cartRemoved"))
+    void removeFromCart(id).then(() => toast.success(t("toast.cartRemoved")))
   }
 
   if (items.length === 0) {

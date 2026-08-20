@@ -18,8 +18,8 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-import { getPrompt } from "@/lib/data"
 import type { Prompt } from "@/lib/data"
+import { usePromptsByIds } from "@/lib/prompts/client"
 import { useStore } from "@/lib/store"
 import type { Review } from "@/lib/store"
 import { formatCompactWon, formatPrice, useI18n } from "@/lib/i18n"
@@ -119,8 +119,10 @@ function downloadAllReceipts(
 
 export default function MyPage() {
   const router = useRouter()
-  const { user, purchases, getReview, saveReview } = useStore()
+  const { user, purchases, getReview, saveReview, isCommerceReady } = useStore()
   const { t, locale } = useI18n()
+  const purchaseIds = purchases.map((purchase) => purchase.id)
+  const promptItems = usePromptsByIds(purchaseIds)
   const [query, setQuery] = React.useState("")
   const [status, setStatus] = React.useState<StatusFilter>("all")
   const [sort, setSort] = React.useState<SortOption>("newest")
@@ -128,16 +130,23 @@ export default function MyPage() {
   const [downloadTarget, setDownloadTarget] = React.useState<PurchaseRow | null>(null)
 
   React.useEffect(() => {
-    if (!user) router.replace("/login")
+    if (!user) router.replace("/sign-in")
   }, [user, router])
 
-  if (!user) return <AuthPageSkeleton />
+  if (
+    !user ||
+    !isCommerceReady ||
+    (purchases.length > 0 && promptItems.length === 0)
+  ) {
+    return <AuthPageSkeleton />
+  }
 
+  const promptById = new Map(promptItems.map((prompt) => [prompt.id, prompt]))
   const items: PurchaseRow[] = purchases
-    .map((p) => {
-      const prompt = getPrompt(p.id)
+    .map((purchase) => {
+      const prompt = promptById.get(purchase.id)
       if (!prompt) return null
-      return { id: p.id, date: p.date, prompt }
+      return { id: purchase.id, date: purchase.date, prompt }
     })
     .filter((item): item is PurchaseRow => Boolean(item))
 

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Check, Heart, ShoppingCart, X } from "lucide-react"
 import { toast } from "sonner"
 
-import { getPrompt } from "@/lib/data"
+import { usePromptsByIds } from "@/lib/prompts/client"
 import { useStore } from "@/lib/store"
 import { formatPrice, useI18n } from "@/lib/i18n"
 import { localizePrompt } from "@/lib/prompt-i18n"
@@ -18,23 +18,26 @@ import { cn } from "@/lib/utils"
 
 export default function WishlistPage() {
   const router = useRouter()
-  const { user, wishlist, removeFromWishlist, addToCart, isInCart, isPurchased } = useStore()
+  const { user, wishlist, removeFromWishlist, addToCart, isInCart, isPurchased, isCommerceReady } =
+    useStore()
   const { t, locale } = useI18n()
+  const promptItems = usePromptsByIds(wishlist)
 
   React.useEffect(() => {
-    if (!user) router.replace("/login")
+    if (!user) router.replace("/sign-in")
   }, [user, router])
 
-  if (!user) return <AuthPageSkeleton />
-
-  const items = wishlist.map(getPrompt).filter((p): p is NonNullable<typeof p> => Boolean(p))
-
-  function handleRemove(id: string) {
-    removeFromWishlist(id)
-    toast.success(t("toast.wishlistRemoved"))
+  if (!user || !isCommerceReady || (wishlist.length > 0 && promptItems.length === 0)) {
+    return <AuthPageSkeleton />
   }
 
-  function handleAddToCart(id: string, purchased: boolean, inCart: boolean) {
+  const items = promptItems
+
+  function handleRemove(id: string) {
+    void removeFromWishlist(id).then(() => toast.success(t("toast.wishlistRemoved")))
+  }
+
+  async function handleAddToCart(id: string, purchased: boolean, inCart: boolean) {
     if (purchased) {
       toast.error(t("toast.alreadyPurchased"))
       return
@@ -43,7 +46,7 @@ export default function WishlistPage() {
       toast.error(t("toast.alreadyInCart"))
       return
     }
-    const ok = addToCart(id)
+    const ok = await addToCart(id)
     if (!ok) {
       toast.error(t("toast.alreadyInCart"))
       return

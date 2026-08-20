@@ -33,7 +33,7 @@ export function PromptDetail({ prompt }: { prompt: Prompt }) {
     router.push("/login")
   }
 
-  function handleAdd() {
+  async function handleAdd() {
     if (!user) return requireLogin()
     if (purchased) {
       toast.error(t("toast.alreadyPurchased"))
@@ -43,7 +43,7 @@ export function PromptDetail({ prompt }: { prompt: Prompt }) {
       toast.error(t("toast.alreadyInCart"))
       return
     }
-    const ok = addToCart(prompt.id)
+    const ok = await addToCart(prompt.id)
     if (!ok) {
       toast.error(t("toast.alreadyInCart"))
       return
@@ -51,9 +51,9 @@ export function PromptDetail({ prompt }: { prompt: Prompt }) {
     toast.success(t("toast.addedToCart"))
   }
 
-  function handleWishlist() {
+  async function handleWishlist() {
     if (!user) return requireLogin()
-    toggleWishlist(prompt.id)
+    await toggleWishlist(prompt.id)
     toast.success(wishlisted ? t("toast.wishlistRemoved") : t("toast.wishlistAdded"))
   }
 

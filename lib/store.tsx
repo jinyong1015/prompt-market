@@ -1,6 +1,11 @@
 "use client"
 
 import * as React from "react"
+import { useAuth, useUser } from "@clerk/nextjs"
+
+import { checkoutAction } from "@/lib/commerce/actions"
+import { loadCommerceSnapshot } from "@/lib/commerce/sync"
+import { useSupabaseClient } from "@/lib/supabase/client"
 
 export interface User {
   email: string
@@ -14,114 +19,188 @@ export interface Review {
   updatedAt: string
 }
 
-interface StoreState {
+interface StoreContextValue {
   user: User | null
+  isCommerceReady: boolean
   cart: string[]
   wishlist: string[]
   purchases: { id: string; date: string }[]
   reviews: Record<string, Review>
-}
-
-interface StoreContextValue extends StoreState {
-  login: (email: string) => void
-  signup: (data: { email: string; nickname: string }) => void
-  logout: () => void
+  refreshCommerce: () => Promise<void>
   updateProfile: (data: Partial<Pick<User, "nickname" | "avatar">>) => void
-  addToCart: (id: string) => boolean
-  removeFromCart: (id: string) => void
+  addToCart: (id: string) => Promise<boolean>
+  removeFromCart: (id: string) => Promise<void>
   isInCart: (id: string) => boolean
-  toggleWishlist: (id: string) => void
+  toggleWishlist: (id: string) => Promise<void>
   isInWishlist: (id: string) => boolean
-  removeFromWishlist: (id: string) => void
+  removeFromWishlist: (id: string) => Promise<void>
   isPurchased: (id: string) => boolean
-  checkout: (ids: string[]) => void
+  checkout: (ids: string[]) => Promise<{ ok: true } | { ok: false; error: string }>
   saveReview: (promptId: string, data: { rating: number; content: string }) => void
   getReview: (promptId: string) => Review | undefined
 }
 
 const StoreContext = React.createContext<StoreContextValue | null>(null)
 
-const defaultUser: User = {
-  email: "creator@promptmarket.io",
-  nickname: "프롬프트러버",
-  avatar: null,
+function clerkToUser(
+  clerkUser: NonNullable<ReturnType<typeof useUser>["user"]>,
+): User {
+  return {
+    email: clerkUser.primaryEmailAddress?.emailAddress ?? "",
+    nickname:
+      clerkUser.firstName ??
+      clerkUser.fullName ??
+      clerkUser.username ??
+      clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ??
+      "User",
+    avatar: clerkUser.imageUrl ?? null,
+  }
 }
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  // Prototype: user starts logged in so the full flow is explorable.
-  const [user, setUser] = React.useState<User | null>(defaultUser)
+  const { isSignedIn, isLoaded } = useAuth()
+  const { user: clerkUser } = useUser()
+  const supabase = useSupabaseClient()
+
+  const [profileOverrides, setProfileOverrides] = React.useState<
+    Partial<Pick<User, "nickname" | "avatar">>
+  >({})
   const [cart, setCart] = React.useState<string[]>([])
   const [wishlist, setWishlist] = React.useState<string[]>([])
   const [purchases, setPurchases] = React.useState<{ id: string; date: string }[]>([])
   const [reviews, setReviews] = React.useState<Record<string, Review>>({})
+  const [isCommerceReady, setIsCommerceReady] = React.useState(false)
 
-  const login = React.useCallback((email: string) => {
-    setUser({ email, nickname: email.split("@")[0] || "사용자", avatar: null })
-  }, [])
+  const user = React.useMemo(() => {
+    if (!isSignedIn || !clerkUser) return null
+    return { ...clerkToUser(clerkUser), ...profileOverrides }
+  }, [isSignedIn, clerkUser, profileOverrides])
 
-  const signup = React.useCallback((data: { email: string; nickname: string }) => {
-    setUser({
-      email: data.email,
-      nickname: data.nickname.trim() || data.email.split("@")[0] || "사용자",
-      avatar: null,
-    })
-  }, [])
+  const refreshCommerce = React.useCallback(async () => {
+    if (!isSignedIn) {
+      setCart([])
+      setWishlist([])
+      setPurchases([])
+      setIsCommerceReady(true)
+      return
+    }
 
-  const logout = React.useCallback(() => {
-    setUser(null)
-    setCart([])
-    setWishlist([])
-  }, [])
+    setIsCommerceReady(false)
+    const snapshot = await loadCommerceSnapshot(supabase)
+    setCart(snapshot.cart)
+    setWishlist(snapshot.wishlist)
+    setPurchases(snapshot.purchases)
+    setIsCommerceReady(true)
+  }, [isSignedIn, supabase])
 
-  const updateProfile = React.useCallback(
-    (data: Partial<Pick<User, "nickname" | "avatar">>) => {
-      setUser((prev) => (prev ? { ...prev, ...data } : prev))
-    },
-    [],
-  )
+  React.useEffect(() => {
+    if (!isLoaded) return
+    void refreshCommerce()
+  }, [isLoaded, isSignedIn, clerkUser?.id, refreshCommerce])
+
+  const requireUserId = React.useCallback(() => {
+    if (!clerkUser?.id) throw new Error("Login required")
+    return clerkUser.id
+  }, [clerkUser?.id])
 
   const isPurchased = React.useCallback(
-    (id: string) => purchases.some((p) => p.id === id),
+    (id: string) => purchases.some((purchase) => purchase.id === id),
     [purchases],
   )
 
   const isInCart = React.useCallback((id: string) => cart.includes(id), [cart])
+  const isInWishlist = React.useCallback((id: string) => wishlist.includes(id), [wishlist])
 
-  /** Returns false if already purchased or already in cart (no duplicate). */
   const addToCart = React.useCallback(
-    (id: string) => {
-      if (purchases.some((p) => p.id === id)) return false
-      if (cart.includes(id)) return false
+    async (id: string) => {
+      if (!isSignedIn) return false
+      if (isPurchased(id) || isInCart(id)) return false
+
+      const userId = requireUserId()
+      const { error } = await supabase.from("carts").insert({ user_id: userId, prompt_id: id })
+
+      if (error) {
+        if (error.code !== "23505") console.error("[addToCart]", error.message)
+        return false
+      }
+
       setCart((prev) => [...prev, id])
       return true
     },
-    [cart, purchases],
+    [isSignedIn, isPurchased, isInCart, requireUserId, supabase],
   )
 
-  const removeFromCart = React.useCallback((id: string) => {
-    setCart((prev) => prev.filter((c) => c !== id))
-  }, [])
+  const removeFromCart = React.useCallback(
+    async (id: string) => {
+      if (!isSignedIn) return
 
-  const toggleWishlist = React.useCallback((id: string) => {
-    setWishlist((prev) => (prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]))
-  }, [])
+      const { error } = await supabase.from("carts").delete().eq("prompt_id", id)
+      if (error) {
+        console.error("[removeFromCart]", error.message)
+        return
+      }
 
-  const removeFromWishlist = React.useCallback((id: string) => {
-    setWishlist((prev) => prev.filter((w) => w !== id))
-  }, [])
+      setCart((prev) => prev.filter((item) => item !== id))
+    },
+    [isSignedIn, supabase],
+  )
 
-  const isInWishlist = React.useCallback((id: string) => wishlist.includes(id), [wishlist])
+  const toggleWishlist = React.useCallback(
+    async (id: string) => {
+      if (!isSignedIn) return
 
-  const checkout = React.useCallback((ids: string[]) => {
-    const date = new Date().toISOString().slice(0, 10)
-    const uniqueIds = [...new Set(ids)]
-    setPurchases((prev) => {
-      const existing = new Set(prev.map((p) => p.id))
-      const next = uniqueIds.filter((id) => !existing.has(id)).map((id) => ({ id, date }))
-      return [...next, ...prev]
-    })
-    setCart((prev) => prev.filter((c) => !uniqueIds.includes(c)))
-  }, [])
+      const userId = requireUserId()
+
+      if (isInWishlist(id)) {
+        const { error } = await supabase.from("wishlists").delete().eq("prompt_id", id)
+        if (error) {
+          console.error("[toggleWishlist/remove]", error.message)
+          return
+        }
+        setWishlist((prev) => prev.filter((item) => item !== id))
+        return
+      }
+
+      const { error } = await supabase.from("wishlists").insert({ user_id: userId, prompt_id: id })
+      if (error) {
+        if (error.code !== "23505") console.error("[toggleWishlist/add]", error.message)
+        return
+      }
+
+      setWishlist((prev) => [...prev, id])
+    },
+    [isSignedIn, isInWishlist, requireUserId, supabase],
+  )
+
+  const removeFromWishlist = React.useCallback(
+    async (id: string) => {
+      if (!isSignedIn) return
+
+      const { error } = await supabase.from("wishlists").delete().eq("prompt_id", id)
+      if (error) {
+        console.error("[removeFromWishlist]", error.message)
+        return
+      }
+
+      setWishlist((prev) => prev.filter((item) => item !== id))
+    },
+    [isSignedIn, supabase],
+  )
+
+  const checkout = React.useCallback(async (ids: string[]) => {
+    const result = await checkoutAction(ids)
+    if (result.ok) {
+      await refreshCommerce()
+    }
+    return result
+  }, [refreshCommerce])
+
+  const updateProfile = React.useCallback(
+    (data: Partial<Pick<User, "nickname" | "avatar">>) => {
+      setProfileOverrides((prev) => ({ ...prev, ...data }))
+    },
+    [],
+  )
 
   const saveReview = React.useCallback((promptId: string, data: { rating: number; content: string }) => {
     setReviews((prev) => ({
@@ -139,13 +218,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo(
     () => ({
       user,
+      isCommerceReady,
       cart,
       wishlist,
       purchases,
       reviews,
-      login,
-      signup,
-      logout,
+      refreshCommerce,
       updateProfile,
       addToCart,
       removeFromCart,
@@ -160,13 +238,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       user,
+      isCommerceReady,
       cart,
       wishlist,
       purchases,
       reviews,
-      login,
-      signup,
-      logout,
+      refreshCommerce,
       updateProfile,
       addToCart,
       removeFromCart,

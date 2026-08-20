@@ -74,6 +74,69 @@ export interface Database {
           is_published?: boolean
         }
       }
+      carts: {
+        Row: {
+          id: number
+          created_at: string
+          user_id: string
+          prompt_id: string
+        }
+        Insert: {
+          id?: never
+          created_at?: string
+          user_id: string
+          prompt_id: string
+        }
+        Update: {
+          id?: never
+          created_at?: string
+          user_id?: string
+          prompt_id?: string
+        }
+      }
+      wishlists: {
+        Row: {
+          id: number
+          created_at: string
+          user_id: string
+          prompt_id: string
+        }
+        Insert: {
+          id?: never
+          created_at?: string
+          user_id: string
+          prompt_id: string
+        }
+        Update: {
+          id?: never
+          created_at?: string
+          user_id?: string
+          prompt_id?: string
+        }
+      }
+      purchases: {
+        Row: {
+          id: string
+          created_at: string
+          buyer_id: string
+          prompt_id: string
+          payment_order_id: string
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          buyer_id: string
+          prompt_id: string
+          payment_order_id: string
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          buyer_id?: string
+          prompt_id?: string
+          payment_order_id?: string
+        }
+      }
     }
   }
 }
