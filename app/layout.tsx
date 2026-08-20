@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs"
 import { koKR } from "@clerk/localizations/ko-KR"
 import { shadcn } from "@clerk/ui/themes"
+import { GoogleAnalytics } from "@next/third-parties/google"
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata, Viewport } from "next"
 import { Space_Grotesk, Inter } from "next/font/google"
@@ -8,6 +9,8 @@ import { Providers } from "@/components/providers"
 import { SiteHeader } from "@/components/site-header"
 import { Toaster } from "@/components/ui/sonner"
 import "./globals.css"
+
+const gaId = process.env.NEXT_PUBLIC_GA_ID
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -55,6 +58,7 @@ export default function RootLayout({
           {process.env.NODE_ENV === "production" && <Analytics />}
         </ClerkProvider>
       </body>
+      {gaId ? <GoogleAnalytics gaId={gaId} /> : null}
     </html>
   )
 }
