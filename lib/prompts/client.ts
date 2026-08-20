@@ -28,19 +28,32 @@ export function fetchPromptsByIds(supabase: SupabaseClient, ids: string[]) {
 export function usePromptsByIds(ids: string[]) {
   const supabase = useSupabaseClient()
   const [prompts, setPrompts] = React.useState<Prompt[]>([])
+  const [isReady, setIsReady] = React.useState(ids.length === 0)
   const idsKey = ids.join(",")
 
   React.useEffect(() => {
     let cancelled = false
+    const currentIds = idsKey ? idsKey.split(",") : []
 
-    fetchPromptsByIds(supabase, ids).then((result) => {
-      if (!cancelled) setPrompts(result)
+    if (currentIds.length === 0) {
+      setPrompts((prev) => (prev.length === 0 ? prev : []))
+      setIsReady(true)
+      return
+    }
+
+    setIsReady(false)
+
+    fetchPromptsByIds(supabase, currentIds).then((result) => {
+      if (!cancelled) {
+        setPrompts(result)
+        setIsReady(true)
+      }
     })
 
     return () => {
       cancelled = true
     }
-  }, [supabase, idsKey, ids])
+  }, [supabase, idsKey])
 
-  return prompts
+  return { prompts, isReady }
 }

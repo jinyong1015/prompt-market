@@ -23,6 +23,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.112.3
         version: 2.112.3
+      '@tosspayments/tosspayments-sdk':
+        specifier: ^2.8.0
+        version: 2.8.0
       '@vercel/analytics':
         specifier: 1.6.1
         version: 1.6.1(next@16.3.0(@babel/core@7.29.7(supports-color@8.1.1))(@types/node@24.10.4)(babel-plugin-macros@3.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
@@ -1396,6 +1399,9 @@ packages:
 
   '@tanstack/query-core@5.101.4':
     resolution: {integrity: sha512-gNwcvOJcRbLWPOLG/2OBm+zM+Yv+MKsXKEOWC57USuZDEsI71hEErQsiEGx5wX9rzWWkfwM0fVSPoiIFSsxfiw==}
+
+  '@tosspayments/tosspayments-sdk@2.8.0':
+    resolution: {integrity: sha512-DWFlEqrX6m0hHcjuSf3pHIdeNbyN8SQ3VanO0Ru3qQwYf8NHfAKn1wr90VJrCgPio4aYvHOtbtMld3BfRTxexQ==}
 
   '@ts-morph/common@0.27.0':
     resolution: {integrity: sha512-Wf29UqxWDpc+i61k3oIOzcUfQt79PIT9y/MWfAGlrkjg6lBC1hwDECLXPVJAhWjiGbfBCxZd65F/LIZF3+jeJQ==}
@@ -5099,6 +5105,8 @@ snapshots:
       tailwindcss: 4.3.3
 
   '@tanstack/query-core@5.101.4': {}
+
+  '@tosspayments/tosspayments-sdk@2.8.0': {}
 
   '@ts-morph/common@0.27.0':
     dependencies:

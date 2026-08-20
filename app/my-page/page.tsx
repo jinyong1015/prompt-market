@@ -119,10 +119,10 @@ function downloadAllReceipts(
 
 export default function MyPage() {
   const router = useRouter()
-  const { user, purchases, getReview, saveReview, isCommerceReady } = useStore()
+  const { user, isAuthLoaded, purchases, getReview, saveReview, isCommerceReady } = useStore()
   const { t, locale } = useI18n()
   const purchaseIds = purchases.map((purchase) => purchase.id)
-  const promptItems = usePromptsByIds(purchaseIds)
+  const { prompts: promptItems, isReady: promptsReady } = usePromptsByIds(purchaseIds)
   const [query, setQuery] = React.useState("")
   const [status, setStatus] = React.useState<StatusFilter>("all")
   const [sort, setSort] = React.useState<SortOption>("newest")
@@ -130,14 +130,10 @@ export default function MyPage() {
   const [downloadTarget, setDownloadTarget] = React.useState<PurchaseRow | null>(null)
 
   React.useEffect(() => {
-    if (!user) router.replace("/sign-in")
-  }, [user, router])
+    if (isAuthLoaded && !user) router.replace("/sign-in")
+  }, [isAuthLoaded, user, router])
 
-  if (
-    !user ||
-    !isCommerceReady ||
-    (purchases.length > 0 && promptItems.length === 0)
-  ) {
+  if (!isAuthLoaded || !user || !isCommerceReady || (purchaseIds.length > 0 && !promptsReady)) {
     return <AuthPageSkeleton />
   }
 

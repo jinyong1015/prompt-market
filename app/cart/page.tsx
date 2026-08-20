@@ -20,16 +20,16 @@ import { cn } from "@/lib/utils"
 
 export default function CartPage() {
   const router = useRouter()
-  const { user, cart, removeFromCart, isCommerceReady } = useStore()
+  const { user, isAuthLoaded, cart, removeFromCart, isCommerceReady } = useStore()
   const { t, locale } = useI18n()
   const [checkoutOpen, setCheckoutOpen] = React.useState(false)
-  const promptItems = usePromptsByIds(cart)
+  const { prompts: promptItems, isReady: promptsReady } = usePromptsByIds(cart)
 
   React.useEffect(() => {
-    if (!user) router.replace("/sign-in")
-  }, [user, router])
+    if (isAuthLoaded && !user) router.replace("/sign-in")
+  }, [isAuthLoaded, user, router])
 
-  if (!user || !isCommerceReady || (cart.length > 0 && promptItems.length === 0)) {
+  if (!isAuthLoaded || !user || !isCommerceReady || (cart.length > 0 && !promptsReady)) {
     return <AuthPageSkeleton />
   }
 

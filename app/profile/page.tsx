@@ -16,7 +16,7 @@ import { AuthPageSkeleton } from "@/components/auth-page-skeleton"
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, updateProfile } = useStore()
+  const { user, isAuthLoaded, updateProfile } = useStore()
   const { t } = useI18n()
 
   const [editing, setEditing] = React.useState(false)
@@ -24,10 +24,10 @@ export default function ProfilePage() {
   const fileRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
-    if (!user) router.replace("/login")
-  }, [user, router])
+    if (isAuthLoaded && !user) router.replace("/sign-in")
+  }, [isAuthLoaded, user, router])
 
-  if (!user) return <AuthPageSkeleton />
+  if (!isAuthLoaded || !user) return <AuthPageSkeleton />
 
   function startEdit() {
     setDraft(user!.nickname)

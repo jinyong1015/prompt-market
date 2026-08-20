@@ -18,16 +18,24 @@ import { cn } from "@/lib/utils"
 
 export default function WishlistPage() {
   const router = useRouter()
-  const { user, wishlist, removeFromWishlist, addToCart, isInCart, isPurchased, isCommerceReady } =
-    useStore()
+  const {
+    user,
+    isAuthLoaded,
+    wishlist,
+    removeFromWishlist,
+    addToCart,
+    isInCart,
+    isPurchased,
+    isCommerceReady,
+  } = useStore()
   const { t, locale } = useI18n()
-  const promptItems = usePromptsByIds(wishlist)
+  const { prompts: promptItems, isReady: promptsReady } = usePromptsByIds(wishlist)
 
   React.useEffect(() => {
-    if (!user) router.replace("/sign-in")
-  }, [user, router])
+    if (isAuthLoaded && !user) router.replace("/sign-in")
+  }, [isAuthLoaded, user, router])
 
-  if (!user || !isCommerceReady || (wishlist.length > 0 && promptItems.length === 0)) {
+  if (!isAuthLoaded || !user || !isCommerceReady || (wishlist.length > 0 && !promptsReady)) {
     return <AuthPageSkeleton />
   }
 

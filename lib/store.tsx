@@ -21,6 +21,7 @@ export interface Review {
 
 interface StoreContextValue {
   user: User | null
+  isAuthLoaded: boolean
   isCommerceReady: boolean
   cart: string[]
   wishlist: string[]
@@ -218,6 +219,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const value = React.useMemo(
     () => ({
       user,
+      isAuthLoaded: isLoaded,
       isCommerceReady,
       cart,
       wishlist,
@@ -238,6 +240,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       user,
+      isLoaded,
       isCommerceReady,
       cart,
       wishlist,

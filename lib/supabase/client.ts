@@ -1,8 +1,8 @@
 "use client"
 
-import { useSession } from "@clerk/nextjs"
+import { useAuth } from "@clerk/nextjs"
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
-import { useMemo } from "react"
+import { useMemo, useRef } from "react"
 
 import { getSupabaseEnv } from "@/lib/supabase/env"
 
@@ -19,10 +19,12 @@ export function createBrowserSupabaseClient(
 }
 
 export function useSupabaseClient() {
-  const { session } = useSession()
+  const { getToken } = useAuth()
+  const getTokenRef = useRef(getToken)
+  getTokenRef.current = getToken
 
   return useMemo(
-    () => createBrowserSupabaseClient(() => session?.getToken() ?? Promise.resolve(null)),
-    [session],
+    () => createBrowserSupabaseClient(() => getTokenRef.current()),
+    [],
   )
 }
