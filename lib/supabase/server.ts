@@ -1,18 +1,38 @@
+import "server-only"
+
 import { auth } from "@clerk/nextjs/server"
-import { createClient } from "@supabase/supabase-js"
+import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 
-import { getSupabaseEnv } from "@/lib/supabase/env"
+import { getSupabaseEnv, getSupabaseServiceRoleKey } from "@/lib/supabase/env"
 
+/** Public reads (anon role). No Clerk session required. */
+export function createPublicSupabaseClient() {
+  const { url, publishableKey } = getSupabaseEnv()
+  return createSupabaseClient(url, publishableKey)
+}
+
+/** Authenticated requests: Clerk JWT is forwarded for RLS. */
 export function createServerSupabaseClient() {
   const { url, publishableKey } = getSupabaseEnv()
 
-  return createClient(url, publishableKey, {
+  return createSupabaseClient(url, publishableKey, {
     async accessToken() {
       return (await auth()).getToken()
     },
   })
 }
 
-export async function createClient() {
-  return createServerSupabaseClient()
+/**
+ * Server-only privileged client. Bypasses RLS.
+ * Use only after Clerk `isAdmin()` in Server Actions / Server Components.
+ */
+export function createServiceRoleSupabaseClient() {
+  const { url } = getSupabaseEnv()
+
+  return createSupabaseClient(url, getSupabaseServiceRoleKey(), {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
 }

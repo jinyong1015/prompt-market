@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation"
-import { getPrompt, prompts } from "@/lib/data"
-import { PromptDetail } from "@/components/prompt-detail"
 
-export function generateStaticParams() {
-  return prompts.map((p) => ({ id: p.id }))
-}
+import { PromptDetail } from "@/components/prompt-detail"
+import { getPromptById } from "@/lib/prompts/queries"
+
+export const dynamic = "force-dynamic"
 
 export default async function PromptPage({
   params,
@@ -12,7 +11,7 @@ export default async function PromptPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const prompt = getPrompt(id)
+  const prompt = await getPromptById(id)
   if (!prompt) notFound()
   return <PromptDetail prompt={prompt} />
 }

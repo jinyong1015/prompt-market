@@ -12,3 +12,16 @@ export function getSupabaseEnv() {
 
   return { url: supabaseUrl, publishableKey: supabasePublishableKey }
 }
+
+export function getSupabaseServiceRoleKey() {
+  const key =
+    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!key) {
+    throw new Error(
+      "Missing SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY). Required for admin writes.",
+    )
+  }
+
+  return key
+}

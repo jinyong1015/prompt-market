@@ -1,8 +1,9 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Heart, ShoppingCart, User as UserIcon, Receipt, LogOut, Sparkles } from "lucide-react"
+import { Heart, ShoppingCart, User as UserIcon, Receipt, LogOut, Sparkles, Settings2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { SignInButton, SignUpButton, useAuth, useClerk, useUser } from "@clerk/nextjs"
@@ -31,6 +32,29 @@ export function SiteHeader() {
   const { isSignedIn, isLoaded } = useAuth()
   const { user: clerkUser } = useUser()
   const { signOut } = useClerk()
+  const [isAdminUser, setIsAdminUser] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!isSignedIn) {
+      setIsAdminUser(false)
+      return
+    }
+
+    let cancelled = false
+
+    fetch("/api/admin/status")
+      .then((res) => res.json())
+      .then((data: { isAdmin?: boolean }) => {
+        if (!cancelled) setIsAdminUser(Boolean(data.isAdmin))
+      })
+      .catch(() => {
+        if (!cancelled) setIsAdminUser(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isSignedIn, clerkUser?.id])
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-md">
@@ -139,6 +163,12 @@ export function SiteHeader() {
                       <Receipt />
                       {t("header.purchases")}
                     </DropdownMenuItem>
+                    {isAdminUser ? (
+                      <DropdownMenuItem onClick={() => router.push("/admin/prompts")}>
+                        <Settings2 />
+                        {t("header.adminPrompts")}
+                      </DropdownMenuItem>
+                    ) : null}
                   </DropdownMenuGroup>
 
                   <DropdownMenuSeparator />

@@ -12,6 +12,7 @@ export type Prompt = {
   images: string[]
 }
 
+/** Local seed used by cart/wishlist/purchase demo flows only. List/detail pages read from Supabase. */
 export const prompts: Prompt[] = [
   {
     id: "cinematic-portrait",
