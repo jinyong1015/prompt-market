@@ -16,7 +16,8 @@ import { promptToFormInput, type PromptFormInput } from "@/lib/prompts/map"
 import type { PromptRow } from "@/lib/supabase/database.types"
 import { formatPrice, useI18n } from "@/lib/i18n"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -164,9 +165,12 @@ export function PromptAdminPanel({ prompts }: { prompts: PromptRow[] }) {
                   </td>
                   <td className="px-2 py-3">
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/prompt/${row.id}`}>{t("admin.view")}</Link>
-                      </Button>
+                      <Link
+                        href={`/prompt/${row.id}`}
+                        className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                      >
+                        {t("admin.view")}
+                      </Link>
                       <Button variant="outline" size="sm" onClick={() => openEdit(row)} disabled={pending}>
                         <Pencil data-icon="inline-start" />
                         {t("admin.edit")}
