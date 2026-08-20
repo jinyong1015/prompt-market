@@ -4,19 +4,24 @@ import { createPublicSupabaseClient, createServiceRoleSupabaseClient } from "@/l
 import type { PromptRow } from "@/lib/supabase/database.types"
 
 export async function listPublishedPrompts(): Promise<Prompt[]> {
-  const supabase = createPublicSupabaseClient()
-  const { data, error } = await supabase
-    .from("prompts")
-    .select("*")
-    .eq("is_published", true)
-    .order("created_at", { ascending: false })
+  try {
+    const supabase = createPublicSupabaseClient()
+    const { data, error } = await supabase
+      .from("prompts")
+      .select("*")
+      .eq("is_published", true)
+      .order("created_at", { ascending: false })
 
-  if (error) {
-    console.error("[listPublishedPrompts]", error.message)
+    if (error) {
+      console.error("[listPublishedPrompts]", error.message)
+      return []
+    }
+
+    return (data as PromptRow[]).map(rowToPrompt)
+  } catch (error) {
+    console.error("[listPublishedPrompts]", error)
     return []
   }
-
-  return (data as PromptRow[]).map(rowToPrompt)
 }
 
 export async function getPromptById(id: string): Promise<Prompt | null> {

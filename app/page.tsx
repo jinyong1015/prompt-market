@@ -3,6 +3,8 @@ import { Suspense } from "react"
 import { HomePageContent } from "@/components/home-page-content"
 import { listPublishedPrompts } from "@/lib/prompts/queries"
 
+export const dynamic = "force-dynamic"
+
 async function PromptsSection() {
   const prompts = await listPublishedPrompts()
   return <HomePageContent prompts={prompts} />
