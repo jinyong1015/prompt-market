@@ -13,7 +13,12 @@ export function createBrowserSupabaseClient(
 
   return createClient(url, publishableKey, {
     async accessToken() {
-      return getToken()
+      if (typeof window === "undefined") return null
+      try {
+        return await getToken()
+      } catch {
+        return null
+      }
     },
   })
 }
